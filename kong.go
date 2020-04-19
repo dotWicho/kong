@@ -557,12 +557,12 @@ func (k *Client) ListAPIs(param string) (map[string]APIResponse, error) {
 
 	path := endpath(fmt.Sprintf("%s/%s", kongApis, ifempty(param, "")))
 
-	failureV := FailureMessage{}
+	failureV := &FailureMessage{}
 
 	apisMap := make(map[string]APIResponse)
 
 	if len(param) == 0 {
-		successV := APIListResponse{}
+		successV := &APIListResponse{}
 
 		k.session.AddQueryParam("size", "1000")
 
@@ -585,7 +585,7 @@ func (k *Client) ListAPIs(param string) (map[string]APIResponse, error) {
 			}
 		}
 	} else {
-		successV := APIResponse{}
+		successV := &APIResponse{}
 
 		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
 			return nil, err
