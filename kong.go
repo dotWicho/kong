@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"bitbucket.org/dotWicho/requist"
+	"github.com/dotWicho/requist"
 )
 
 const (
