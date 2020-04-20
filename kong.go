@@ -835,12 +835,12 @@ func (k *Client) DeleteConsumer(consumerId string) error {
 }
 
 // ExistConsumer ...
-func (k *Client) ExistConsumer(consumer string) bool {
+func (k *Client) ExistConsumer(consumerId string) bool {
 
-	if consumer == "" {
+	if consumerId == "" {
 		return false
 	}
-	path := endpath(fmt.Sprintf("%s/%s", kongConsumers, consumer))
+	path := endpath(fmt.Sprintf("%s/%s", kongConsumers, consumerId))
 
 	successV := &ConsumersResponse{}
 	failureV := &FailureMessage{}
@@ -855,15 +855,15 @@ func (k *Client) ExistConsumer(consumer string) bool {
 }
 
 // GetConsumerKeyAuth ...
-func (k *Client) GetConsumerKeyAuth(consumer string) (map[string]KeyAuthData, error) {
+func (k *Client) GetConsumerKeyAuth(consumerId string) (map[string]KeyAuthData, error) {
 
 	keysMap := make(map[string]KeyAuthData)
 
-	if consumer != "" {
+	if consumerId != "" {
 		successV := &BasicKeyAuth{}
 		failureV := &FailureMessage{}
 
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, consumer, kongKeyAuth))
+		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, consumerId, kongKeyAuth))
 
 		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
 			return nil, err
@@ -879,6 +879,8 @@ func (k *Client) GetConsumerKeyAuth(consumer string) (map[string]KeyAuthData, er
 				}
 				keysMap[basicAuth.ID] = keyDetails
 			}
+		} else {
+			return nil, errors.New("unable to get results")
 		}
 	}
 
@@ -886,10 +888,10 @@ func (k *Client) GetConsumerKeyAuth(consumer string) (map[string]KeyAuthData, er
 }
 
 // SetConsumerKeyAuth ...
-func (k *Client) SetConsumerKeyAuth(consumer, apikey string) error {
+func (k *Client) SetConsumerKeyAuth(consumerId, apikey string) error {
 
-	if consumer != "" && apikey != "" {
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, consumer, kongKeyAuth))
+	if consumerId != "" && apikey != "" {
+		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, consumerId, kongKeyAuth))
 
 		payload := &KeyAuthData{
 			Key: apikey,
@@ -898,6 +900,23 @@ func (k *Client) SetConsumerKeyAuth(consumer, apikey string) error {
 		failureV := FailureMessage{}
 
 		if _, err := k.session.BodyAsJSON(payload).Post(path, successV, failureV); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// DeleteConsumerKeyAuth ...
+func (k *Client) DeleteConsumerKeyAuth(consumerId, keyId string) error {
+
+	if consumerId != "" && keyId != "" {
+		path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongConsumers, consumerId, kongKeyAuth, keyId))
+
+		successV := ConsumersResponse{}
+		failureV := FailureMessage{}
+
+		if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
 			return err
 		}
 	}
