@@ -1,6 +1,7 @@
 package kong
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -561,7 +562,7 @@ func (k *Client) ListAPIs(param string) (map[string]APIResponse, error) {
 
 	apisMap := make(map[string]APIResponse)
 
-	if len(param) == 0 {
+	if param == "" {
 		successV := &APIListResponse{}
 
 		k.session.AddQueryParam("size", "1000")
@@ -583,6 +584,8 @@ func (k *Client) ListAPIs(param string) (map[string]APIResponse, error) {
 				}
 				apisMap[api.ID] = apiDetail
 			}
+		} else {
+			return nil, errors.New("unable to get results")
 		}
 	} else {
 		successV := &APIResponse{}
@@ -591,14 +594,18 @@ func (k *Client) ListAPIs(param string) (map[string]APIResponse, error) {
 			return nil, err
 		}
 
-		apisMap[successV.ID] = APIResponse{
-			ID:          successV.ID,
-			Name:        successV.Name,
-			RequestPath: successV.RequestPath,
-			Upstream:    successV.Upstream,
-			Preserve:    successV.Preserve,
-			Created:     successV.Created,
-			StripPath:   successV.StripPath,
+		if successV.ID != "" {
+			apisMap[successV.ID] = APIResponse{
+				ID:          successV.ID,
+				Name:        successV.Name,
+				RequestPath: successV.RequestPath,
+				Upstream:    successV.Upstream,
+				Preserve:    successV.Preserve,
+				Created:     successV.Created,
+				StripPath:   successV.StripPath,
+			}
+		} else {
+			return nil, errors.New("unable to get results")
 		}
 	}
 
@@ -673,7 +680,7 @@ func (k *Client) DeleteAPI(apiId string) error {
 // GetApiPlugins
 func (k *Client) GetApiPlugins(apiId string) (map[string]PluginsResponse, error) {
 
-	if len(apiId) > 0 {
+	if apiId != "" {
 		successV := &PluginsListResponse{}
 		failureV := &FailureMessage{}
 
@@ -697,12 +704,14 @@ func (k *Client) GetApiPlugins(apiId string) (map[string]PluginsResponse, error)
 				}
 				pluginsMap[plugin.ID] = pluginDetail
 			}
+		} else {
+			return nil, errors.New("unable to get results")
 		}
 
 		return pluginsMap, nil
 	}
 
-	return nil, nil
+	return nil, errors.New("apiId cannot be empty")
 }
 
 // CreatePluginOnApi
@@ -737,7 +746,7 @@ func (k *Client) ListConsumer(param string) (map[string]ConsumersResponse, error
 
 	consumersMap := make(map[string]ConsumersResponse)
 
-	if len(param) == 0 {
+	if param == "" {
 		successV := &ConsumersListResponse{}
 		k.session.AddQueryParam("size", "1000")
 
@@ -756,6 +765,8 @@ func (k *Client) ListConsumer(param string) (map[string]ConsumersResponse, error
 				}
 				consumersMap[consumer.ID] = consumerDetail
 			}
+		} else {
+			return nil, errors.New("unable to get results")
 		}
 	} else {
 		successV := &ConsumersResponse{}
@@ -764,12 +775,16 @@ func (k *Client) ListConsumer(param string) (map[string]ConsumersResponse, error
 			return nil, err
 		}
 
-		consumersMap[successV.ID] = ConsumersResponse{
-			ID:        successV.ID,
-			Username:  successV.Username,
-			CustomID:  successV.CustomID,
-			CreatedAt: successV.CreatedAt,
-			Tags:      successV.Tags,
+		if successV.ID != "" {
+			consumersMap[successV.ID] = ConsumersResponse{
+				ID:        successV.ID,
+				Username:  successV.Username,
+				CustomID:  successV.CustomID,
+				CreatedAt: successV.CreatedAt,
+				Tags:      successV.Tags,
+			}
+		} else {
+			return nil, errors.New("unable to get results")
 		}
 	}
 
@@ -926,7 +941,7 @@ func (k *Client) ListServices(param string) (map[string]ServiceResponse, error) 
 
 	serviceMap := make(map[string]ServiceResponse)
 
-	if len(param) > 0 {
+	if param != "" {
 		successV := &ServiceListResponse{}
 
 		k.session.AddQueryParam("size", "1000")
@@ -955,6 +970,8 @@ func (k *Client) ListServices(param string) (map[string]ServiceResponse, error) 
 				}
 				serviceMap[service.ID] = serviceDetails
 			}
+		} else {
+			return nil, errors.New("unable to get results")
 		}
 	} else {
 		successV := &ServiceResponse{}
@@ -962,21 +979,26 @@ func (k *Client) ListServices(param string) (map[string]ServiceResponse, error) 
 		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
 			return nil, err
 		}
-		serviceMap[successV.ID] = ServiceResponse{
-			ID:                successV.ID,
-			Name:              successV.Name,
-			CreatedAt:         successV.CreatedAt,
-			UpdatedAt:         successV.UpdatedAt,
-			Retries:           successV.Retries,
-			Protocol:          successV.Protocol,
-			Host:              successV.Host,
-			Port:              successV.Port,
-			Path:              successV.Path,
-			ConnectTimeout:    successV.ConnectTimeout,
-			WriteTimeout:      successV.WriteTimeout,
-			ReadTimeout:       successV.ReadTimeout,
-			Tags:              successV.Tags,
-			ClientCertificate: successV.ClientCertificate,
+
+		if successV.ID != "" {
+			serviceMap[successV.ID] = ServiceResponse{
+				ID:                successV.ID,
+				Name:              successV.Name,
+				CreatedAt:         successV.CreatedAt,
+				UpdatedAt:         successV.UpdatedAt,
+				Retries:           successV.Retries,
+				Protocol:          successV.Protocol,
+				Host:              successV.Host,
+				Port:              successV.Port,
+				Path:              successV.Path,
+				ConnectTimeout:    successV.ConnectTimeout,
+				WriteTimeout:      successV.WriteTimeout,
+				ReadTimeout:       successV.ReadTimeout,
+				Tags:              successV.Tags,
+				ClientCertificate: successV.ClientCertificate,
+			}
+		} else {
+			return nil, errors.New("unable to get results")
 		}
 	}
 
@@ -1029,7 +1051,7 @@ func (k *Client) DeleteService(serviceId string) error {
 // GetServicePlugins
 func (k *Client) GetServicePlugins(serviceId string) (map[string]PluginsResponse, error) {
 
-	if len(serviceId) > 0 {
+	if serviceId != "" {
 		successV := &PluginsListResponse{}
 		failureV := &FailureMessage{}
 
@@ -1053,12 +1075,13 @@ func (k *Client) GetServicePlugins(serviceId string) (map[string]PluginsResponse
 				}
 				pluginsMap[plugin.ID] = pluginDetail
 			}
+		} else {
+			return nil, errors.New("unable to get results")
 		}
 
 		return pluginsMap, nil
 	}
-
-	return nil, nil
+	return nil, errors.New("serviceId cannot be empty")
 }
 
 // CreatePluginOnService
@@ -1075,7 +1098,7 @@ func (k *Client) CreatePluginOnService(serviceId string, payload PluginsCreateBo
 			return err
 		}
 	}
-	return nil
+	return errors.New("serviceId cannot be empty")
 }
 
 /**
@@ -1126,6 +1149,8 @@ func (k *Client) ListServiceRoutes(serviceId, routeId string) (map[string]RouteR
 					}
 					routesMap[route.ID] = routeDetails
 				}
+			} else {
+				return nil, errors.New("unable to get results")
 			}
 
 		} else {
@@ -1135,24 +1160,28 @@ func (k *Client) ListServiceRoutes(serviceId, routeId string) (map[string]RouteR
 				return nil, err
 			}
 
-			routeDetails := RouteResponse{
-				ID:                      successV.ID,
-				Name:                    successV.Name,
-				CreatedAt:               successV.CreatedAt,
-				UpdatedAt:               successV.UpdatedAt,
-				Methods:                 successV.Methods,
-				Protocols:               successV.Protocols,
-				Hosts:                   successV.Hosts,
-				Paths:                   successV.Paths,
-				Headers:                 successV.Headers,
-				HTTPSRedirectStatusCode: successV.HTTPSRedirectStatusCode,
-				RegexPriority:           successV.RegexPriority,
-				StripPath:               successV.StripPath,
-				Tags:                    successV.Tags,
-				PreserveHost:            successV.PreserveHost,
-				Service:                 successV.Service,
+			if successV.ID != "" {
+				routeDetails := RouteResponse{
+					ID:                      successV.ID,
+					Name:                    successV.Name,
+					CreatedAt:               successV.CreatedAt,
+					UpdatedAt:               successV.UpdatedAt,
+					Methods:                 successV.Methods,
+					Protocols:               successV.Protocols,
+					Hosts:                   successV.Hosts,
+					Paths:                   successV.Paths,
+					Headers:                 successV.Headers,
+					HTTPSRedirectStatusCode: successV.HTTPSRedirectStatusCode,
+					RegexPriority:           successV.RegexPriority,
+					StripPath:               successV.StripPath,
+					Tags:                    successV.Tags,
+					PreserveHost:            successV.PreserveHost,
+					Service:                 successV.Service,
+				}
+				routesMap[successV.ID] = routeDetails
+			} else {
+				return nil, errors.New("unable to get results")
 			}
-			routesMap[successV.ID] = routeDetails
 		}
 	}
 	return routesMap, nil
