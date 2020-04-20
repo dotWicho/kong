@@ -485,7 +485,7 @@ func (k *Client) NewFromURL(base *url.URL) *Client {
 	return client
 }
 
-// StatusCode returns resultcode from last request
+// StatusCode returns result code from last request
 func (k *Client) StatusCode() int {
 
 	return k.session.StatusCode()
@@ -656,9 +656,9 @@ func (k *Client) UpdateAPI(apiId string, payload APICreateBody) (*APIResponse, e
 }
 
 // DeleteAPI ...
-func (k *Client) DeleteAPI(payload APICreateBody) error {
+func (k *Client) DeleteAPI(apiId string) error {
 
-	path := endpath(fmt.Sprintf("%s/%s", kongApis, ifempty(payload.Name, "")))
+	path := endpath(fmt.Sprintf("%s/%s", kongApis, apiId))
 
 	successV := &APIResponse{}
 	failureV := &FailureMessage{}
@@ -805,9 +805,9 @@ func (k *Client) UpdateConsumer(consumerId string, payload ConsumersCreateBody) 
 }
 
 //
-func (k *Client) DeleteConsumer(payload ConsumersCreateBody) error {
+func (k *Client) DeleteConsumer(consumerId string) error {
 
-	path := endpath(fmt.Sprintf("%s/%s", kongConsumers, ifempty(payload.Username, "")))
+	path := endpath(fmt.Sprintf("%s/%s", kongConsumers, consumerId))
 
 	successV := &ConsumersResponse{}
 	failureV := &FailureMessage{}
@@ -1012,9 +1012,9 @@ func (k *Client) UpdateService(serviceId string, payload ServiceCreateBody) (*Se
 }
 
 // DeleteService
-func (k *Client) DeleteService(payload ServiceCreateBody) error {
+func (k *Client) DeleteService(serviceId string) error {
 
-	path := endpath(fmt.Sprintf("%s/%s", kongServices, ifempty(payload.Name, "")))
+	path := endpath(fmt.Sprintf("%s/%s", kongServices, serviceId))
 
 	successV := &ServiceResponse{}
 	failureV := &FailureMessage{}
@@ -1175,17 +1175,27 @@ func (k *Client) CreateRouteOnService(serviceId string, payload RouteCreateBody)
 }
 
 // UpdateRoute
-func (k *Client) UpdateRoute(payload RouteCreateBody, serviceId, routeId string) (*RouteResponse, error) {
+func (k *Client) UpdateRoute(routeId string, payload RouteCreateBody) (*RouteResponse, error) {
 
 	failureV := &FailureMessage{}
 	successV := &RouteResponse{}
 
-	var path string
-	if serviceId != "" {
-		path = endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, serviceId, kongRoutes, routeId))
-	} else {
-		path = endpath(fmt.Sprintf("%s/%s", kongRoutes, routeId))
+	path := endpath(fmt.Sprintf("%s/%s", kongRoutes, routeId))
+
+	if _, err := k.session.BodyAsJSON(payload).Patch(path, successV, failureV); err != nil {
+		return successV, err
 	}
+
+	return successV, nil
+}
+
+// UpdateRoute
+func (k *Client) UpdateRouteForService(serviceId, routeId string, payload RouteCreateBody) (*RouteResponse, error) {
+
+	failureV := &FailureMessage{}
+	successV := &RouteResponse{}
+
+	path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, serviceId, kongRoutes, routeId))
 
 	if _, err := k.session.BodyAsJSON(payload).Patch(path, successV, failureV); err != nil {
 		return successV, err
@@ -1195,17 +1205,27 @@ func (k *Client) UpdateRoute(payload RouteCreateBody, serviceId, routeId string)
 }
 
 // DeleteRoute
-func (k *Client) DeleteRoute(payload RouteCreateBody, serviceId string) error {
+func (k *Client) DeleteRoute(routeId string) error {
 
 	failureV := &FailureMessage{}
 	successV := &RouteResponse{}
 
-	var path string
-	if serviceId != "" {
-		path = endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, serviceId, kongRoutes, payload.Name))
-	} else {
-		path = endpath(fmt.Sprintf("%s/%s", kongRoutes, payload.Name))
+	path := endpath(fmt.Sprintf("%s/%s", kongRoutes, routeId))
+
+	if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
+		return err
 	}
+
+	return nil
+}
+
+// DeleteRouteForService
+func (k *Client) DeleteRouteForService(serviceId, routeId string) error {
+
+	failureV := &FailureMessage{}
+	successV := &RouteResponse{}
+
+	path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, serviceId, kongRoutes, routeId))
 
 	if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
 		return err
