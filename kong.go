@@ -907,6 +907,26 @@ func (k *Client) SetConsumerKeyAuth(consumerId, apikey string) error {
 	return nil
 }
 
+// SetConsumerKeyAuth ...
+func (k *Client) ConsumerKeyAuth(consumerId string) error {
+
+	if consumerId != "" {
+		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, consumerId, kongKeyAuth))
+
+		payload := &KeyAuthData{
+			Key: "",
+		}
+		successV := ConsumersResponse{}
+		failureV := FailureMessage{}
+
+		if _, err := k.session.BodyAsJSON(payload).Post(path, successV, failureV); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // DeleteConsumerKeyAuth ...
 func (k *Client) DeleteConsumerKeyAuth(consumerId, keyId string) error {
 
