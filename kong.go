@@ -575,18 +575,18 @@ func (k *Client) ListAPIs(api string) (map[string]APIResponse, error) {
 			return nil, err
 		}
 
-		if successV.Total > 0 {
-			for _, api := range successV.Data {
+		if len(successV.Data) > 0 {
+			for _, _apis := range successV.Data {
 				apiDetail := APIResponse{
-					ID:          api.ID,
-					Name:        api.Name,
-					RequestPath: api.RequestPath,
-					Upstream:    api.Upstream,
-					Preserve:    api.Preserve,
-					Created:     api.Created,
-					StripPath:   api.StripPath,
+					ID:          _apis.ID,
+					Name:        _apis.Name,
+					RequestPath: _apis.RequestPath,
+					Upstream:    _apis.Upstream,
+					Preserve:    _apis.Preserve,
+					Created:     _apis.Created,
+					StripPath:   _apis.StripPath,
 				}
-				apisMap[api.ID] = apiDetail
+				apisMap[_apis.ID] = apiDetail
 			}
 		} else {
 			return nil, errors.New("unable to get results")
@@ -696,7 +696,7 @@ func (k *Client) GetApiPlugins(api string) (map[string]PluginsResponse, error) {
 
 		pluginsMap := make(map[string]PluginsResponse)
 
-		if successV.Total > 0 {
+		if len(successV.Data) > 0 {
 			for _, plugin := range successV.Data {
 				pluginDetail := PluginsResponse{
 					ID:      plugin.ID,
@@ -758,16 +758,16 @@ func (k *Client) ListConsumer(consumer string) (map[string]ConsumersResponse, er
 			return nil, err
 		}
 
-		if successV.Total > 0 {
-			for _, consumer := range successV.Data {
+		if len(successV.Data) > 0 {
+			for _, _consumers := range successV.Data {
 				consumerDetail := ConsumersResponse{
-					ID:        consumer.ID,
-					Username:  consumer.Username,
-					CustomID:  consumer.CustomID,
-					CreatedAt: consumer.CreatedAt,
-					Tags:      consumer.Tags,
+					ID:        _consumers.ID,
+					Username:  _consumers.Username,
+					CustomID:  _consumers.CustomID,
+					CreatedAt: _consumers.CreatedAt,
+					Tags:      _consumers.Tags,
 				}
-				consumersMap[consumer.ID] = consumerDetail
+				consumersMap[_consumers.ID] = consumerDetail
 			}
 		} else {
 			return nil, errors.New("unable to get results")
@@ -873,7 +873,7 @@ func (k *Client) GetConsumerKeyAuth(consumer string) (map[string]KeyAuthData, er
 			return nil, err
 		}
 
-		if successV.Total > 0 {
+		if len(successV.Data) > 0 {
 			for _, basicAuth := range successV.Data {
 				keyDetails := KeyAuthData{
 					ID:         basicAuth.ID,
@@ -1033,7 +1033,7 @@ func (k *Client) ListServices(service string) (map[string]ServiceResponse, error
 			return nil, err
 		}
 
-		if successV.Total > 0 {
+		if len(successV.Data) > 0 {
 			for _, service := range successV.Data {
 				serviceDetails := ServiceResponse{
 					ID:                service.ID,
@@ -1146,7 +1146,7 @@ func (k *Client) GetServicePlugins(service string) (map[string]PluginsResponse, 
 
 		pluginsMap := make(map[string]PluginsResponse)
 
-		if successV.Total > 0 {
+		if len(successV.Data) > 0 {
 			for _, plugin := range successV.Data {
 				pluginDetail := PluginsResponse{
 					ID:      plugin.ID,
@@ -1211,7 +1211,7 @@ func (k *Client) ListServiceRoutes(service, route string) (map[string]RouteRespo
 				return nil, err
 			}
 
-			if successV.Total > 0 {
+			if len(successV.Data) > 0 {
 				for _, route := range successV.Data {
 					routeDetails := RouteResponse{
 						ID:                      route.ID,
