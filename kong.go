@@ -714,16 +714,15 @@ func (k *Client) GetApiPlugins(api string) (map[string]PluginsResponse, error) {
 
 		return pluginsMap, nil
 	}
-
-	return nil, errors.New("apiId cannot be empty")
+	return nil, errors.New("api cannot be empty")
 }
 
 // CreatePluginOnApi
-func (k *Client) CreatePluginOnApi(apiId string, payload PluginsCreateBody) error {
+func (k *Client) CreatePluginOnApi(api string, payload PluginsCreateBody) error {
 
-	if apiId != "" {
+	if api != "" {
 		//
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongApis, apiId, kongPlugins))
+		path := endpath(fmt.Sprintf("%s/%s/%s", kongApis, api, kongPlugins))
 
 		successV := &PluginsResponse{}
 		failureV := &FailureMessage{}
@@ -733,6 +732,24 @@ func (k *Client) CreatePluginOnApi(apiId string, payload PluginsCreateBody) erro
 		}
 	}
 	return nil
+}
+
+// CreatePluginOnApi
+func (k *Client) DeletePluginFromApi(api, plugin string) error {
+
+	if api != "" && plugin != "" {
+		//
+		path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongApis, api, kongPlugins, plugin))
+
+		successV := &PluginsResponse{}
+		failureV := &FailureMessage{}
+
+		if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
+			return err
+		}
+		return nil
+	}
+	return errors.New("params cannot be empty")
 }
 
 /**
@@ -906,13 +923,13 @@ func (k *Client) SetConsumerKeyAuth(consumer, apikey string) error {
 		if _, err := k.session.BodyAsJSON(payload).Post(path, successV, failureV); err != nil {
 			return err
 		}
+		return nil
 	}
-
-	return nil
+	return errors.New("params cannot be empty")
 }
 
-// SetConsumerKeyAuth ...
-func (k *Client) ConsumerKeyAuth(consumer string) error {
+// NewConsumerKeyAuth ...
+func (k *Client) NewConsumerKeyAuth(consumer string) error {
 
 	if consumer != "" {
 		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, consumer, kongKeyAuth))
@@ -926,9 +943,9 @@ func (k *Client) ConsumerKeyAuth(consumer string) error {
 		if _, err := k.session.BodyAsJSON(payload).Post(path, successV, failureV); err != nil {
 			return err
 		}
+		return nil
 	}
-
-	return nil
+	return errors.New("params cannot be empty")
 }
 
 // DeleteConsumerKeyAuth ...
@@ -943,9 +960,9 @@ func (k *Client) DeleteConsumerKeyAuth(consumer, apikey string) error {
 		if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
 			return err
 		}
+		return nil
 	}
-
-	return nil
+	return errors.New("params cannot be empty")
 }
 
 // SetConsumerAcl ...
@@ -963,9 +980,9 @@ func (k *Client) SetConsumerAcl(consumer, group string) error {
 		if _, err := k.session.BodyAsJSON(payload).Post(path, successV, failureV); err != nil {
 			return err
 		}
+		return nil
 	}
-
-	return nil
+	return errors.New("params cannot be empty")
 }
 
 // SetConsumerAcl ...
@@ -983,9 +1000,9 @@ func (k *Client) DeleteConsumerAcl(consumer, group string) error {
 		if _, err := k.session.BodyAsJSON(payload).Post(path, successV, failureV); err != nil {
 			return err
 		}
+		return nil
 	}
-
-	return nil
+	return errors.New("params cannot be empty")
 }
 
 // GetConsumerByKey ...
@@ -1127,7 +1144,6 @@ func (k *Client) DeleteService(service string) error {
 	if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -1184,6 +1200,24 @@ func (k *Client) CreatePluginOnService(service string, payload PluginsCreateBody
 	return errors.New("service cannot be empty")
 }
 
+// CreatePluginOnService
+func (k *Client) DeletePluginFromService(service, plugin string) error {
+
+	if service != "" && plugin != "" {
+
+		path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, service, kongPlugins, plugin))
+
+		successV := &PluginsResponse{}
+		failureV := &FailureMessage{}
+
+		if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
+			return err
+		}
+		return nil
+	}
+	return errors.New("params cannot be empty")
+}
+
 /**
  *
  * Kong Routes func handlers
@@ -1191,7 +1225,118 @@ func (k *Client) CreatePluginOnService(service string, payload PluginsCreateBody
  *
  **/
 
-// ShowRoute
+// ListRoutes
+func (k *Client) ListRoutes(route string) (map[string]RouteResponse, error) {
+
+	path := endpath(fmt.Sprintf("%s/%s", kongServices, route))
+
+	failureV := &FailureMessage{}
+
+	routesMap := make(map[string]RouteResponse)
+
+	if route != "" {
+		successV := &RouteListResponse{}
+
+		k.session.AddQueryParam("size", "1000")
+
+		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
+			return nil, err
+		}
+
+		if len(successV.Data) > 0 {
+			for _, route := range successV.Data {
+				routeDetails := RouteResponse{
+					ID:                      route.ID,
+					Name:                    route.Name,
+					CreatedAt:               route.CreatedAt,
+					UpdatedAt:               route.UpdatedAt,
+					Tags:                    route.Tags,
+					Protocols:               route.Protocols,
+					Methods:                 route.Methods,
+					Hosts:                   route.Hosts,
+					Paths:                   route.Paths,
+					Headers:                 route.Headers,
+					HTTPSRedirectStatusCode: route.HTTPSRedirectStatusCode,
+					RegexPriority:           route.RegexPriority,
+					StripPath:               route.StripPath,
+					PreserveHost:            route.PreserveHost,
+					Service:                 route.Service,
+				}
+				routesMap[route.ID] = routeDetails
+			}
+		} else {
+			return nil, errors.New("unable to get results")
+		}
+	} else {
+		successV := &RouteResponse{}
+
+		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
+			return nil, err
+		}
+
+		if successV.ID != "" {
+			routesMap[successV.ID] = RouteResponse{
+				ID:                      successV.ID,
+				Name:                    successV.Name,
+				CreatedAt:               successV.CreatedAt,
+				UpdatedAt:               successV.UpdatedAt,
+				Tags:                    successV.Tags,
+				Protocols:               successV.Protocols,
+				Methods:                 successV.Methods,
+				Hosts:                   successV.Hosts,
+				Paths:                   successV.Paths,
+				Headers:                 successV.Headers,
+				HTTPSRedirectStatusCode: successV.HTTPSRedirectStatusCode,
+				RegexPriority:           successV.RegexPriority,
+				StripPath:               successV.StripPath,
+				PreserveHost:            successV.PreserveHost,
+				Service:                 successV.Service,
+			}
+		} else {
+			return nil, errors.New("unable to get results")
+		}
+	}
+
+	return routesMap, nil
+}
+
+// UpdateRoute
+func (k *Client) UpdateRoute(route string, payload RouteCreateBody) (*RouteResponse, error) {
+
+	if route != "" {
+		failureV := &FailureMessage{}
+		successV := &RouteResponse{}
+
+		path := endpath(fmt.Sprintf("%s/%s", kongRoutes, route))
+
+		if _, err := k.session.BodyAsJSON(payload).Patch(path, successV, failureV); err != nil {
+			return successV, err
+		}
+
+		return successV, nil
+	}
+	return nil, errors.New("route cannot be empty")
+}
+
+// DeleteRoute
+func (k *Client) DeleteRoute(route string) error {
+
+	if route != "" {
+		failureV := &FailureMessage{}
+		successV := &RouteResponse{}
+
+		path := endpath(fmt.Sprintf("%s/%s", kongRoutes, route))
+
+		if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
+			return err
+		}
+
+		return nil
+	}
+	return errors.New("route cannot be empty")
+}
+
+// ListServiceRoutes
 func (k *Client) ListServiceRoutes(service, route string) (map[string]RouteResponse, error) {
 
 	failureV := &FailureMessage{}
@@ -1270,78 +1415,55 @@ func (k *Client) ListServiceRoutes(service, route string) (map[string]RouteRespo
 	return routesMap, nil
 }
 
-// CreateRoute
+// CreateRouteOnService
 func (k *Client) CreateRouteOnService(service string, payload RouteCreateBody) (*RouteResponse, error) {
 
-	failureV := &FailureMessage{}
-	successV := &RouteResponse{}
-
 	if service != "" {
+		failureV := &FailureMessage{}
+		successV := &RouteResponse{}
+
 		path := endpath(fmt.Sprintf("%s/%s/%s", kongServices, service, kongRoutes))
 
 		if _, err := k.session.BodyAsJSON(payload).Post(path, successV, failureV); err != nil {
 			return successV, err
 		}
+		return successV, nil
 	}
-	return successV, nil
+	return nil, errors.New("service cannot be empty")
 }
 
-// UpdateRoute
-func (k *Client) UpdateRoute(route string, payload RouteCreateBody) (*RouteResponse, error) {
-
-	failureV := &FailureMessage{}
-	successV := &RouteResponse{}
-
-	path := endpath(fmt.Sprintf("%s/%s", kongRoutes, route))
-
-	if _, err := k.session.BodyAsJSON(payload).Patch(path, successV, failureV); err != nil {
-		return successV, err
-	}
-
-	return successV, nil
-}
-
-// UpdateRoute
+// UpdateRouteForService
 func (k *Client) UpdateRouteForService(service, route string, payload RouteCreateBody) (*RouteResponse, error) {
 
-	failureV := &FailureMessage{}
-	successV := &RouteResponse{}
+	if service != "" && route != "" {
+		failureV := &FailureMessage{}
+		successV := &RouteResponse{}
 
-	path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, service, kongRoutes, route))
+		path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, service, kongRoutes, route))
 
-	if _, err := k.session.BodyAsJSON(payload).Patch(path, successV, failureV); err != nil {
-		return successV, err
+		if _, err := k.session.BodyAsJSON(payload).Patch(path, successV, failureV); err != nil {
+			return successV, err
+		}
+
+		return successV, nil
 	}
-
-	return successV, nil
-}
-
-// DeleteRoute
-func (k *Client) DeleteRoute(route string) error {
-
-	failureV := &FailureMessage{}
-	successV := &RouteResponse{}
-
-	path := endpath(fmt.Sprintf("%s/%s", kongRoutes, route))
-
-	if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
-		return err
-	}
-
-	return nil
+	return nil, errors.New("params cannot be empty")
 }
 
 // DeleteRouteForService
 func (k *Client) DeleteRouteForService(service, route string) error {
 
-	failureV := &FailureMessage{}
-	successV := &RouteResponse{}
+	if service != "" && route != "" {
+		failureV := &FailureMessage{}
+		successV := &RouteResponse{}
 
-	path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, service, kongRoutes, route))
+		path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, service, kongRoutes, route))
 
-	if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
-		return err
+		if _, err := k.session.BodyAsJSON(nil).Delete(path, successV, failureV); err != nil {
+			return err
+		}
+
+		return nil
 	}
-
-	return nil
+	return errors.New("params cannot be empty")
 }
