@@ -405,6 +405,7 @@ type Client struct {
 	session     *requist.Requist
 	auth        string
 	KongVersion int
+	Url         string
 }
 
 //#$$=== support functions
@@ -479,6 +480,7 @@ func (k *Client) NewFromURL(base *url.URL) *Client {
 
 	client := &Client{}
 	client.session = requist.New(base.String())
+	client.Url = base.String()
 
 	if base.User.String() != "" {
 		if pass, check := base.User.Password(); check {
