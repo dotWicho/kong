@@ -1107,6 +1107,28 @@ func (k *Client) ListServices(service string) (map[string]ServiceResponse, error
 	return serviceMap, nil
 }
 
+// ExistAPI ...
+func (k *Client) ExistService(service string) bool {
+
+	if service == "" {
+		return false
+	}
+	path := endpath(fmt.Sprintf("%s/%s", kongServices, service))
+
+	successV := &ServiceResponse{}
+	failureV := &FailureMessage{}
+
+	if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
+		return false
+	}
+
+	if failureV.Message != "" {
+		return false
+	}
+
+	return successV.ID != ""
+}
+
 // CreateService
 func (k *Client) CreateService(payload ServiceCreateBody) (*ServiceResponse, error) {
 
