@@ -720,7 +720,7 @@ func (k *Client) GetApiPlugins(api string) (map[string]PluginsResponse, error) {
 }
 
 // CreatePluginOnApi
-func (k *Client) CreatePluginOnApi(api string, payload PluginsCreateBody) error {
+func (k *Client) CreatePluginOnApi(api string, payload PluginsCreateBody) (*PluginsResponse, error) {
 
 	if api != "" {
 		//
@@ -730,10 +730,11 @@ func (k *Client) CreatePluginOnApi(api string, payload PluginsCreateBody) error 
 		failureV := &FailureMessage{}
 
 		if _, err := k.session.BodyAsJSON(payload).Post(path, successV, failureV); err != nil {
-			return err
+			return nil, err
 		}
+		return successV, nil
 	}
-	return nil
+	return nil, errors.New("api cannot be empty")
 }
 
 // CreatePluginOnApi
@@ -751,7 +752,7 @@ func (k *Client) DeletePluginFromApi(api, plugin string) error {
 		}
 		return nil
 	}
-	return errors.New("params cannot be empty")
+	return errors.New("api cannot be empty")
 }
 
 /**
@@ -845,16 +846,18 @@ func (k *Client) UpdateConsumer(consumer string, payload ConsumersCreateBody) (*
 //
 func (k *Client) DeleteConsumer(consumer string) error {
 
-	path := endpath(fmt.Sprintf("%s/%s", kongConsumers, consumer))
+	if consumer != "" {
+		path := endpath(fmt.Sprintf("%s/%s", kongConsumers, consumer))
 
-	successV := &ConsumersResponse{}
-	failureV := &FailureMessage{}
+		successV := &ConsumersResponse{}
+		failureV := &FailureMessage{}
 
-	if _, err := k.session.BodyAsJSON(nil).Patch(path, successV, failureV); err != nil {
-		return err
+		if _, err := k.session.BodyAsJSON(nil).Patch(path, successV, failureV); err != nil {
+			return err
+		}
+		return nil
 	}
-
-	return nil
+	return errors.New("consumer cannot be empty")
 }
 
 // ExistConsumer ...
@@ -1208,7 +1211,7 @@ func (k *Client) GetServicePlugins(service string) (map[string]PluginsResponse, 
 }
 
 // CreatePluginOnService
-func (k *Client) CreatePluginOnService(service string, payload PluginsCreateBody) error {
+func (k *Client) CreatePluginOnService(service string, payload PluginsCreateBody) (*PluginsResponse, error) {
 
 	if service != "" {
 
@@ -1218,10 +1221,11 @@ func (k *Client) CreatePluginOnService(service string, payload PluginsCreateBody
 		failureV := &FailureMessage{}
 
 		if _, err := k.session.BodyAsJSON(payload).Post(path, successV, failureV); err != nil {
-			return err
+			return nil, err
 		}
+		return successV, nil
 	}
-	return errors.New("service cannot be empty")
+	return nil, errors.New("service cannot be empty")
 }
 
 // CreatePluginOnService
