@@ -1043,7 +1043,7 @@ func (k *Client) ListServices(service string) (map[string]ServiceResponse, error
 
 	serviceMap := make(map[string]ServiceResponse)
 
-	if service != "" {
+	if service == "" {
 		successV := &ServiceListResponse{}
 
 		k.session.AddQueryParam("size", "1000")
