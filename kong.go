@@ -268,18 +268,22 @@ type ConsumerAclResponse struct {
 type PluginsCreateBody struct {
 	Name    string      `json:"name,omitempty"`
 	Config  interface{} `json:"config,omitempty"`
-	Enabled bool        `json:"preserve_host,omitempty"`
+	Enabled bool        `json:"enabled,omitempty"`
 }
 
 // PluginsResponse holds ...
 type PluginsResponse struct {
-	ID         string      `json:"id"`
-	APIID      string      `json:"api_id,omitempty"`
-	ConsumerID string      `json:"consumer_id,omitempty"`
-	Name       string      `json:"name,omitempty"`
-	Config     interface{} `json:"config,omitempty"`
-	Enabled    bool        `json:"preserve_host,omitempty"`
-	Created    int64       `json:"created_at,omitempty"`
+	ID        string      `json:"id"`
+	Name      string      `json:"name,omitempty"`
+	Enabled   bool        `json:"preserve_host,omitempty"`
+	Created   int64       `json:"created_at,omitempty"`
+	Config    interface{} `json:"config,omitempty"`
+	Api       interface{} `json:"api_id,omitempty"`
+	Service   interface{} `json:"service,omitempty"`
+	Consumer  interface{} `json:"service,omitempty"`
+	Route     interface{} `json:"route,omitempty"`
+	Protocols interface{} `json:"protocols,omitempty"`
+	Tags      interface{} `json:"tags,omitempty"`
 }
 
 // PluginsListResponse holds ...
