@@ -1407,8 +1407,8 @@ func (k *Client) DeleteRoute(route string) error {
 	return errors.New("route cannot be empty")
 }
 
-// ListServiceRoutes all routes of a given service
-func (k *Client) ListServiceRoutes(service, route string) (map[string]RouteResponse, error) {
+// ListServiceRoutes returns all routes of a given service
+func (k *Client) ListServiceRoutes(service string) (map[string]RouteResponse, error) {
 
 	failureV := &FailureMessage{}
 	routesMap := make(map[string]RouteResponse)
@@ -1416,74 +1416,43 @@ func (k *Client) ListServiceRoutes(service, route string) (map[string]RouteRespo
 	if service != "" {
 		// services/:idService/routes/:idRoute
 
-		path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongServices, service, kongRoutes, ifempty(route, "")))
+		path := endpath(fmt.Sprintf("%s/%s/%s/", kongServices, service, kongRoutes))
 
-		if route != "" {
-			successV := &RouteListResponse{}
+		successV := &RouteListResponse{}
 
-			k.session.AddQueryParam("size", "1000")
+		k.session.AddQueryParam("size", "1000")
 
-			if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
-				return nil, err
-			}
-
-			if len(successV.Data) > 0 {
-				for _, route := range successV.Data {
-					routeDetails := RouteResponse{
-						ID:                      route.ID,
-						Name:                    route.Name,
-						CreatedAt:               route.CreatedAt,
-						UpdatedAt:               route.UpdatedAt,
-						Methods:                 route.Methods,
-						Protocols:               route.Protocols,
-						Hosts:                   route.Hosts,
-						Paths:                   route.Paths,
-						Headers:                 route.Headers,
-						HTTPSRedirectStatusCode: route.HTTPSRedirectStatusCode,
-						RegexPriority:           route.RegexPriority,
-						StripPath:               route.StripPath,
-						Tags:                    route.Tags,
-						PreserveHost:            route.PreserveHost,
-						Service:                 route.Service,
-					}
-					routesMap[route.ID] = routeDetails
-				}
-			} else {
-				return nil, errors.New("unable to get results")
-			}
-
-		} else {
-			successV := &RouteResponse{}
-
-			if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
-				return nil, err
-			}
-
-			if successV.ID != "" {
-				routeDetails := RouteResponse{
-					ID:                      successV.ID,
-					Name:                    successV.Name,
-					CreatedAt:               successV.CreatedAt,
-					UpdatedAt:               successV.UpdatedAt,
-					Methods:                 successV.Methods,
-					Protocols:               successV.Protocols,
-					Hosts:                   successV.Hosts,
-					Paths:                   successV.Paths,
-					Headers:                 successV.Headers,
-					HTTPSRedirectStatusCode: successV.HTTPSRedirectStatusCode,
-					RegexPriority:           successV.RegexPriority,
-					StripPath:               successV.StripPath,
-					Tags:                    successV.Tags,
-					PreserveHost:            successV.PreserveHost,
-					Service:                 successV.Service,
-				}
-				routesMap[successV.ID] = routeDetails
-			} else {
-				return nil, errors.New("unable to get results")
-			}
+		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
+			return nil, err
 		}
+
+		if len(successV.Data) > 0 {
+			for _, route := range successV.Data {
+				routeDetails := RouteResponse{
+					ID:                      route.ID,
+					Name:                    route.Name,
+					CreatedAt:               route.CreatedAt,
+					UpdatedAt:               route.UpdatedAt,
+					Methods:                 route.Methods,
+					Protocols:               route.Protocols,
+					Hosts:                   route.Hosts,
+					Paths:                   route.Paths,
+					Headers:                 route.Headers,
+					HTTPSRedirectStatusCode: route.HTTPSRedirectStatusCode,
+					RegexPriority:           route.RegexPriority,
+					StripPath:               route.StripPath,
+					Tags:                    route.Tags,
+					PreserveHost:            route.PreserveHost,
+					Service:                 route.Service,
+				}
+				routesMap[route.ID] = routeDetails
+			}
+		} else {
+			return nil, errors.New("service without routes defined")
+		}
+		return routesMap, nil
 	}
-	return routesMap, nil
+	return nil, errors.New("service cannot be empty")
 }
 
 // CreateRouteOnService creates a route on a given service
