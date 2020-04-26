@@ -11,38 +11,33 @@ import (
 )
 
 const (
-	//
+	// kongStatus is a Kong server status endpoint
 	kongStatus string = "/status"
-	// kongService is the path of service endpoint on Kong version >= 0.14.x
+	// kongService is a Kong server service endpoint on Kong version >= 0.13.x
 	kongServices string = "services"
-	// kongRoutes is the path of routes endpoint on Kong version >= 0.14.x
+	// kongRoutes is a Kong server routes endpoint on Kong version >= 0.13.x
 	kongRoutes string = "routes"
-	// kongApis is the path of apis endpoint on Kong version < 0.14.x
+	// kongApis is a Kong server apis endpoint on Kong version < 0.13.x
 	kongApis string = "apis"
-	// kongConsumers is the path of consumers endpoint
+	// kongConsumer is a Kong server consumer Key-Auth endpoint
 	kongConsumer string = "consumer"
-	// kongConsumers is the path of consumers endpoint
+	// kongConsumers is a Kong server consumers endpoint
 	kongConsumers string = "consumers"
-	// kongPlugins is the path of plugins into consumers endpoint
+	// kongPlugins is a Kong server plugins endpoint
 	kongPlugins string = "plugins"
-	// kongAcls is the path of acls into apis endpoint
+	// kongAcls is a Kong server plugins acls endpoint
 	kongAcls string = "acls"
-	// kongKeys is the path of key-auth into consumers endpoint
-	kongKeys string = "keys"
-	// kongKeyAuth is the name of key-auth plugin
+	// kongKeys is a Kong server key-auth consumers endpoint
 	kongKeyAuth string = "key-auth"
-	//
+	// kongKeyAuths is a Kong server (>= v1.1.2) endpoint for GetConsumerByKey
 	kongKeyAuths string = "key-auths"
-	// kongTcpLog is the name of tcp-log plugin
-	kongTcpLog string = "tcp-log"
-	//
 )
 
 /**
  *  Json definitions of Kong entities
 **/
 
-// ClusterResponse holds ...
+// ClusterResponse holds all data for the endpoint / (root)
 type ClusterResponse struct {
 	Hostname      string `json:"hostname,omitempty"`
 	LuaVersion    string `json:"lua_version,omitempty"`
@@ -124,6 +119,7 @@ type ClusterResponse struct {
 	Version string `json:"version,omitempty"`
 }
 
+// ClusterStatusOld holds all data for the endpoint / (root) on Kong servers (<= 0.8.3)
 type ClusterStatusOld struct {
 	Server struct {
 		ConnectionsHandled  int `json:"connections_handled"`
@@ -152,7 +148,8 @@ type ClusterStatusOld struct {
 	} `json:"database"`
 }
 
-type ClusterStatusNew struct {
+// ClusterStatus holds all data for the endpoint / (root) on Kong servers (> 0.8.3)
+type ClusterStatus struct {
 	Database struct {
 		Reachable bool `json:"reachable,omitempty"`
 	} `json:"database,omitempty"`
@@ -167,16 +164,13 @@ type ClusterStatusNew struct {
 	} `json:"server,omitempty"`
 }
 
-// TimeStamp ...
-type TimeStamp int
-
-// FailureMessage ...
+// FailureMessage all failed request match with this datatype
 type FailureMessage struct {
 	Message string `json:"message,omitempty"`
 }
 
-// APIRequestVX holds Kong < 0.14.x API Request data
-type APIRequestVX struct {
+// APIRequest holds Kong < 0.14.x API Request data
+type APIRequest struct {
 	ID   string `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 }
@@ -201,27 +195,21 @@ type APIResponse struct {
 	StripPath   bool   `json:"strip_request_path,omitempty"`
 }
 
-// APIListResponse holds ...
+// APIListResponse holds responses when getting all apis ( GET schema://server:port/apis/ )
 type APIListResponse struct {
 	Data  []APIResponse `json:"data,omitempty"`
 	Next  string        `json:"next,omitempty"`
 	Total int           `json:"total,omitempty"`
 }
 
-// ConsumerRequestVX holds Kong < 0.14.x Consumer Request data
-type ConsumerRequestVX struct {
-	ID       string `json:"id,omitempty"`
-	Username string `json:"username,omitempty"`
-}
-
-// ConsumersCreateBody holds ...
+// ConsumersCreateBody holds request body for POST/PUT/PATCH schema://server:port/consumers/
 type ConsumersCreateBody struct {
 	Username string   `json:"username,omitempty"`
 	CustomID string   `json:"custom_id,omitempty"`
 	Tags     []string `json:"tags,omitempty"`
 }
 
-// ConsumersResponse holds ...
+// ConsumersResponse holds body response for POST/PUT/PATCH schema://server:port/consumers/
 type ConsumersResponse struct {
 	ID        string   `json:"id,omitempty"`
 	Username  string   `json:"username,omitempty"`
@@ -230,14 +218,14 @@ type ConsumersResponse struct {
 	Tags      []string `json:"tags"`
 }
 
-// ConsumersListResponse holds ...
+// ConsumersListResponse holds responses when getting all consumers ( GET schema://server:port/consumers/ )
 type ConsumersListResponse struct {
 	Data  []ConsumersResponse `json:"data,omitempty"`
 	Next  string              `json:"next,omitempty"`
 	Total int                 `json:"total,omitempty"`
 }
 
-// KeyAuthData
+// KeyAuthData holds response when getting basic auth for a consumer
 type KeyAuthData struct {
 	CreatedAt  int64  `json:"created_at,omitempty"`
 	ConsumerID string `json:"consumer_id,omitempty"`
@@ -245,18 +233,18 @@ type KeyAuthData struct {
 	ID         string `json:"id,omitempty"`
 }
 
-// BasicKeyAuth holds ...
+// BasicKeyAuth holds holds responses when getting all basic auths for a consumer
 type BasicKeyAuth struct {
 	Data  []KeyAuthData `json:"data,omitempty"`
 	Total int           `json:"total,omitempty"`
 }
 
-// ConsumerAclBody
+// ConsumerAclBody used to set acl for a consumer
 type ConsumerAclBody struct {
 	Group string `json:"group,omitempty"`
 }
 
-// ConsumerAclResponse
+// ConsumerAclResponse holds responses for a request to set acl to a consumer
 type ConsumerAclResponse struct {
 	ID         string `json:"id,omitempty"`
 	Group      string `json:"group,omitempty"`
@@ -264,46 +252,41 @@ type ConsumerAclResponse struct {
 	ConsumerId int64  `json:"consumer_id,omitempty"`
 }
 
-// PluginsResponse holds ...
+// PluginsCreateBody used to send a request body for create plugins
 type PluginsCreateBody struct {
 	Name    string      `json:"name,omitempty"`
 	Config  interface{} `json:"config,omitempty"`
 	Enabled bool        `json:"enabled,omitempty"`
 }
 
-// PluginsResponse holds ...
+// PluginsResponse holds responses for a request of create or update a plugin
 type PluginsResponse struct {
 	ID        string      `json:"id"`
 	Name      string      `json:"name,omitempty"`
-	Enabled   bool        `json:"preserve_host,omitempty"`
+	Enabled   bool        `json:"enabled,omitempty"`
 	Created   int64       `json:"created_at,omitempty"`
 	Config    interface{} `json:"config,omitempty"`
 	Api       interface{} `json:"api_id,omitempty"`
 	Service   interface{} `json:"service,omitempty"`
-	Consumer  interface{} `json:"service,omitempty"`
+	Consumer  interface{} `json:"consumer,omitempty"`
 	Route     interface{} `json:"route,omitempty"`
 	Protocols interface{} `json:"protocols,omitempty"`
 	Tags      interface{} `json:"tags,omitempty"`
 }
 
-// PluginsListResponse holds ...
+// PluginsListResponse holds responses when getting all plugins of a consumers/apis/services or routes
 type PluginsListResponse struct {
 	Data  []PluginsResponse `json:"data,omitempty"`
 	Next  string            `json:"next,omitempty"`
 	Total int               `json:"total,omitempty"`
 }
 
-// EnabledPluginsResponse holds ...
+// EnabledPluginsResponse used when request the plugins enabled on a Kong server
 type EnabledPluginsResponse struct {
 	EnabledPlugins []string `json:"enabled_plugins"`
 }
 
-// ClientCertificate ..
-type ClientCertificate struct {
-	ID string `json:"id"`
-}
-
-// ServiceCreateBody
+// ServiceCreateBody used for creation of services
 type ServiceCreateBody struct {
 	Name           string      `json:"name,omitempty"`
 	Url            string      `json:"url,omitempty"`
@@ -318,25 +301,27 @@ type ServiceCreateBody struct {
 	Tags           interface{} `json:"tags,omitempty"`
 }
 
-// ServiceResponse
+// ServiceResponse holds responses for Create or Update a services
 type ServiceResponse struct {
-	ID                string            `json:"id,omitempty"`
-	Name              string            `json:"name,omitempty"`
-	CreatedAt         int               `json:"created_at,omitempty"`
-	UpdatedAt         int               `json:"updated_at,omitempty"`
-	Retries           int               `json:"retries,omitempty"`
-	Protocol          string            `json:"protocol,omitempty"`
-	Host              string            `json:"host,omitempty"`
-	Port              int               `json:"port,omitempty"`
-	Path              string            `json:"path,omitempty"`
-	ConnectTimeout    int               `json:"connect_timeout"`
-	WriteTimeout      int               `json:"write_timeout,omitempty"`
-	ReadTimeout       int               `json:"read_timeout,omitempty"`
-	Tags              []string          `json:"tags,omitempty"`
-	ClientCertificate ClientCertificate `json:"client_certificate,omitempty"`
+	ID                string   `json:"id,omitempty"`
+	Name              string   `json:"name,omitempty"`
+	CreatedAt         int      `json:"created_at,omitempty"`
+	UpdatedAt         int      `json:"updated_at,omitempty"`
+	Retries           int      `json:"retries,omitempty"`
+	Protocol          string   `json:"protocol,omitempty"`
+	Host              string   `json:"host,omitempty"`
+	Port              int      `json:"port,omitempty"`
+	Path              string   `json:"path,omitempty"`
+	ConnectTimeout    int      `json:"connect_timeout"`
+	WriteTimeout      int      `json:"write_timeout,omitempty"`
+	ReadTimeout       int      `json:"read_timeout,omitempty"`
+	Tags              []string `json:"tags,omitempty"`
+	ClientCertificate struct {
+		ID string `json:"id,omitempty"`
+	} `json:"client_certificate,omitempty"`
 }
 
-// ServiceResponse
+// ServiceListResponse holds responses when getting all services ( GET schema://server:port/services/ )
 type ServiceListResponse struct {
 	Data  []ServiceResponse `json:"data"`
 	Next  string            `json:"next"`
@@ -348,17 +333,6 @@ type ServiceListResponse struct {
  *
  *
 **/
-
-//
-type Headers struct {
-	XAnotherHeader []string `json:"x-another-header,omitempty"`
-	XMyHeader      []string `json:"x-my-header,omitempty"`
-}
-
-//
-type Service struct {
-	ID string `json:"id,omitempty"`
-}
 
 // RouteCreateBody ...
 type RouteCreateBody struct {
@@ -376,24 +350,27 @@ type RouteCreateBody struct {
 
 // RouteResponse ...
 type RouteResponse struct {
-	ID                      string   `json:"id,omitempty"`
-	CreatedAt               int      `json:"created_at,omitempty"`
-	UpdatedAt               int      `json:"updated_at,omitempty"`
-	Name                    string   `json:"name,omitempty"`
-	Protocols               []string `json:"protocols,omitempty"`
-	Methods                 []string `json:"methods,omitempty"`
-	Hosts                   []string `json:"hosts,omitempty"`
-	Paths                   []string `json:"paths,omitempty"`
-	Headers                 Headers  `json:"headers,omitempty"`
-	HTTPSRedirectStatusCode int      `json:"https_redirect_status_code,omitempty"`
-	RegexPriority           int      `json:"regex_priority,omitempty"`
-	StripPath               bool     `json:"strip_path,omitempty"`
-	PreserveHost            bool     `json:"preserve_host,omitempty"`
-	Tags                    []string `json:"tags,omitempty"`
-	Service                 Service  `json:"service,omitempty"`
+	ID                      string      `json:"id,omitempty"`
+	CreatedAt               int         `json:"created_at,omitempty"`
+	UpdatedAt               int         `json:"updated_at,omitempty"`
+	Name                    string      `json:"name,omitempty"`
+	Protocols               []string    `json:"protocols,omitempty"`
+	Methods                 []string    `json:"methods,omitempty"`
+	Hosts                   []string    `json:"hosts,omitempty"`
+	Paths                   []string    `json:"paths,omitempty"`
+	Headers                 interface{} `json:"headers,omitempty"`
+	HTTPSRedirectStatusCode int         `json:"https_redirect_status_code,omitempty"`
+	RegexPriority           int         `json:"regex_priority,omitempty"`
+	StripPath               bool        `json:"strip_path,omitempty"`
+	PreserveHost            bool        `json:"preserve_host,omitempty"`
+	Tags                    []string    `json:"tags,omitempty"`
+	Service                 struct {
+		ID string `json:"id,omitempty"`
+	} `json:"service,omitempty"`
 }
 
-// RouteListResponse ...
+// RouteListResponse holds responses when getting all routes ( GET schema://server:port/routes/
+//  or schema://server:port/services/{{SERVICE}}/routes/ )
 type RouteListResponse struct {
 	Data  []RouteResponse `json:"data"`
 	Next  string          `json:"next"`
@@ -430,9 +407,9 @@ func endpath(path string) string {
 	return path + "/"
 }
 
-//#$$=== CLient generator functions
+//#$$=== Client generator functions
 
-// NewClient
+// NewClient returns a new Client given a Kong server base url
 func NewClient(base string) *Client {
 
 	baseURL, err := url.Parse(base)
@@ -444,7 +421,7 @@ func NewClient(base string) *Client {
 	return client.NewFromURL(baseURL)
 }
 
-// NewClientFromURL ...
+// NewClientFromURL returns a new Client given a Kong server base url in URL type
 func NewClientFromURL(base *url.URL) *Client {
 
 	baseURL, err := url.Parse(base.String())
@@ -456,10 +433,10 @@ func NewClientFromURL(base *url.URL) *Client {
 	return client.NewFromURL(baseURL)
 }
 
-// NewClientFromElements ...
-func NewClientFromElements(_scheme, _host, _port, _user, _pass string) *Client {
+// NewClientFromElements returns a new Client given a Kong server elements (schema, host, port)
+func NewClientFromElements(_schema, _host, _port, _user, _pass string) *Client {
 
-	scheme := ifempty(_scheme, "http://")
+	scheme := ifempty(_schema, "http://")
 	host := ifempty(_host, "localhost")
 	port := ifempty(_port, "8001")
 
@@ -479,7 +456,7 @@ func NewClientFromElements(_scheme, _host, _port, _user, _pass string) *Client {
 
 //#$$=== Client functions definitions
 
-// NewFromURL ...
+// NewFromURL return a copy of Client changing just a base url
 func (k *Client) NewFromURL(base *url.URL) *Client {
 
 	client := &Client{}
@@ -502,7 +479,7 @@ func (k *Client) StatusCode() int {
 	return k.session.StatusCode()
 }
 
-// CheckConnection ...
+// CheckConnection check for a valid connection against a Kong server
 func (k *Client) CheckConnection() error {
 
 	clusterResponse := &ClusterResponse{}
@@ -530,7 +507,7 @@ func (k *Client) CheckStatus() (map[string]int, error) {
 	if k.KongVersion <= 98 {
 		clusterStatus = &ClusterStatusOld{}
 	} else if k.KongVersion > 98 {
-		clusterStatus = &ClusterStatusNew{}
+		clusterStatus = &ClusterStatus{}
 	}
 	failResponse := &FailureMessage{}
 
@@ -540,13 +517,13 @@ func (k *Client) CheckStatus() (map[string]int, error) {
 
 	mapStatus := make(map[string]int)
 
-	mapStatus["HandledCons"] = clusterStatus.(ClusterStatusNew).Server.ConnectionsHandled
-	mapStatus["AcceptedCons"] = clusterStatus.(ClusterStatusNew).Server.ConnectionsAccepted
-	mapStatus["ActiveCons"] = clusterStatus.(ClusterStatusNew).Server.ConnectionsActive
-	mapStatus["ReadingCons"] = clusterStatus.(ClusterStatusNew).Server.ConnectionsReading
-	mapStatus["WaitingCons"] = clusterStatus.(ClusterStatusNew).Server.ConnectionsWaiting
-	mapStatus["WritingCons"] = clusterStatus.(ClusterStatusNew).Server.ConnectionsWriting
-	mapStatus["TotalRequests"] = clusterStatus.(ClusterStatusNew).Server.TotalRequests
+	mapStatus["Handled"] = clusterStatus.(ClusterStatus).Server.ConnectionsHandled
+	mapStatus["Accepted"] = clusterStatus.(ClusterStatus).Server.ConnectionsAccepted
+	mapStatus["Active"] = clusterStatus.(ClusterStatus).Server.ConnectionsActive
+	mapStatus["Reading"] = clusterStatus.(ClusterStatus).Server.ConnectionsReading
+	mapStatus["Waiting"] = clusterStatus.(ClusterStatus).Server.ConnectionsWaiting
+	mapStatus["Writing"] = clusterStatus.(ClusterStatus).Server.ConnectionsWriting
+	mapStatus["Requests"] = clusterStatus.(ClusterStatus).Server.TotalRequests
 
 	return mapStatus, nil
 }
@@ -563,7 +540,7 @@ func (k *Client) SetBasicAuth(username, password string) {
  *
  **/
 
-// ShowAPI ...
+// ListAPIs returns all apis if api param is empty or info for a given api
 func (k *Client) ListAPIs(api string) (map[string]APIResponse, error) {
 
 	path := endpath(fmt.Sprintf("%s/%s", kongApis, ifempty(api, "")))
@@ -622,7 +599,7 @@ func (k *Client) ListAPIs(api string) (map[string]APIResponse, error) {
 	return apisMap, nil
 }
 
-// ExistAPI ...
+// ExistAPI checks if given api exist
 func (k *Client) ExistAPI(api string) bool {
 
 	if api == "" {
@@ -644,7 +621,7 @@ func (k *Client) ExistAPI(api string) bool {
 	return successV.ID != ""
 }
 
-// CreateAPI ...
+// CreateAPI create an api
 func (k *Client) CreateAPI(payload APICreateBody) (*APIResponse, error) {
 
 	successV := &APIResponse{}
@@ -657,7 +634,7 @@ func (k *Client) CreateAPI(payload APICreateBody) (*APIResponse, error) {
 	return successV, nil
 }
 
-// UpdateAPI ...
+// UpdateAPI update a given api
 func (k *Client) UpdateAPI(api string, payload APICreateBody) (*APIResponse, error) {
 
 	path := endpath(fmt.Sprintf("%s/%s", kongApis, ifempty(api, "")))
@@ -672,7 +649,7 @@ func (k *Client) UpdateAPI(api string, payload APICreateBody) (*APIResponse, err
 	return successV, nil
 }
 
-// DeleteAPI ...
+// DeleteAPI delete a given api
 func (k *Client) DeleteAPI(api string) error {
 
 	path := endpath(fmt.Sprintf("%s/%s", kongApis, api))
@@ -687,7 +664,7 @@ func (k *Client) DeleteAPI(api string) error {
 	return nil
 }
 
-// GetApiPlugins
+// GetApiPlugins returns plugins for a given api
 func (k *Client) GetApiPlugins(api string) (map[string]PluginsResponse, error) {
 
 	if api != "" {
@@ -723,7 +700,7 @@ func (k *Client) GetApiPlugins(api string) (map[string]PluginsResponse, error) {
 	return nil, errors.New("api cannot be empty")
 }
 
-// CreatePluginOnApi
+// CreatePluginOnApi create a plugin on an api
 func (k *Client) CreatePluginOnApi(api string, payload PluginsCreateBody) (*PluginsResponse, error) {
 
 	if api != "" {
@@ -741,7 +718,7 @@ func (k *Client) CreatePluginOnApi(api string, payload PluginsCreateBody) (*Plug
 	return nil, errors.New("api cannot be empty")
 }
 
-// CreatePluginOnApi
+// DeletePluginFromApi delete a plugin from an api
 func (k *Client) DeletePluginFromApi(api, plugin string) error {
 
 	if api != "" && plugin != "" {
@@ -765,7 +742,7 @@ func (k *Client) DeletePluginFromApi(api, plugin string) error {
  *
  **/
 
-// ShowConsumer ...
+// ListConsumer returns all consumers if consumer param is empty or info for a given consumer
 func (k *Client) ListConsumer(consumer string) (map[string]ConsumersResponse, error) {
 
 	path := endpath(fmt.Sprintf("%s/%s", kongConsumers, ifempty(consumer, "")))
@@ -819,52 +796,7 @@ func (k *Client) ListConsumer(consumer string) (map[string]ConsumersResponse, er
 	return consumersMap, nil
 }
 
-//
-func (k *Client) CreateConsumer(payload ConsumersCreateBody) (*ConsumersResponse, error) {
-
-	successV := &ConsumersResponse{}
-	failureV := &FailureMessage{}
-
-	if _, err := k.session.BodyAsJSON(payload).Post(kongConsumers, successV, failureV); err != nil {
-		return successV, err
-	}
-
-	return successV, nil
-}
-
-//
-func (k *Client) UpdateConsumer(consumer string, payload ConsumersCreateBody) (*ConsumersResponse, error) {
-
-	path := endpath(fmt.Sprintf("%s/%s", kongApis, ifempty(consumer, "")))
-
-	successV := &ConsumersResponse{}
-	failureV := &FailureMessage{}
-
-	if _, err := k.session.BodyAsJSON(payload).Patch(path, successV, failureV); err != nil {
-		return successV, err
-	}
-
-	return successV, nil
-}
-
-//
-func (k *Client) DeleteConsumer(consumer string) error {
-
-	if consumer != "" {
-		path := endpath(fmt.Sprintf("%s/%s", kongConsumers, consumer))
-
-		successV := &ConsumersResponse{}
-		failureV := &FailureMessage{}
-
-		if _, err := k.session.BodyAsJSON(nil).Patch(path, successV, failureV); err != nil {
-			return err
-		}
-		return nil
-	}
-	return errors.New("consumer cannot be empty")
-}
-
-// ExistConsumer ...
+// ExistConsumer checks if given consumer exist
 func (k *Client) ExistConsumer(consumer string) bool {
 
 	if consumer == "" {
@@ -884,7 +816,52 @@ func (k *Client) ExistConsumer(consumer string) bool {
 	return successV.ID != ""
 }
 
-// GetConsumerKeyAuth ...
+// CreateConsumer create a consumer
+func (k *Client) CreateConsumer(payload ConsumersCreateBody) (*ConsumersResponse, error) {
+
+	successV := &ConsumersResponse{}
+	failureV := &FailureMessage{}
+
+	if _, err := k.session.BodyAsJSON(payload).Post(kongConsumers, successV, failureV); err != nil {
+		return successV, err
+	}
+
+	return successV, nil
+}
+
+// UpdateConsumer update a given consumer
+func (k *Client) UpdateConsumer(consumer string, payload ConsumersCreateBody) (*ConsumersResponse, error) {
+
+	path := endpath(fmt.Sprintf("%s/%s", kongApis, ifempty(consumer, "")))
+
+	successV := &ConsumersResponse{}
+	failureV := &FailureMessage{}
+
+	if _, err := k.session.BodyAsJSON(payload).Patch(path, successV, failureV); err != nil {
+		return successV, err
+	}
+
+	return successV, nil
+}
+
+// DeleteConsumer deletes a given consumer
+func (k *Client) DeleteConsumer(consumer string) error {
+
+	if consumer != "" {
+		path := endpath(fmt.Sprintf("%s/%s", kongConsumers, consumer))
+
+		successV := &ConsumersResponse{}
+		failureV := &FailureMessage{}
+
+		if _, err := k.session.BodyAsJSON(nil).Patch(path, successV, failureV); err != nil {
+			return err
+		}
+		return nil
+	}
+	return errors.New("consumer cannot be empty")
+}
+
+// GetConsumerKeyAuth return all basic auth of a consumer
 func (k *Client) GetConsumerKeyAuth(consumer string) (map[string]KeyAuthData, error) {
 
 	keysMap := make(map[string]KeyAuthData)
@@ -917,7 +894,7 @@ func (k *Client) GetConsumerKeyAuth(consumer string) (map[string]KeyAuthData, er
 	return keysMap, nil
 }
 
-// SetConsumerKeyAuth ...
+// SetConsumerKeyAuth set a key for a consumer
 func (k *Client) SetConsumerKeyAuth(consumer, apikey string) error {
 
 	if consumer != "" && apikey != "" {
@@ -937,7 +914,7 @@ func (k *Client) SetConsumerKeyAuth(consumer, apikey string) error {
 	return errors.New("params cannot be empty")
 }
 
-// NewConsumerKeyAuth ...
+// NewConsumerKeyAuth create a new basic auth key for a consumer
 func (k *Client) NewConsumerKeyAuth(consumer string) error {
 
 	if consumer != "" {
@@ -957,7 +934,7 @@ func (k *Client) NewConsumerKeyAuth(consumer string) error {
 	return errors.New("params cannot be empty")
 }
 
-// DeleteConsumerKeyAuth ...
+// DeleteConsumerKeyAuth remove basic auth key for a consumer
 func (k *Client) DeleteConsumerKeyAuth(consumer, apikey string) error {
 
 	if consumer != "" && apikey != "" {
@@ -974,7 +951,7 @@ func (k *Client) DeleteConsumerKeyAuth(consumer, apikey string) error {
 	return errors.New("params cannot be empty")
 }
 
-// SetConsumerAcl ...
+// SetConsumerAcl assign a group to a consumer
 func (k *Client) SetConsumerAcl(consumer, group string) error {
 
 	if consumer != "" && group != "" {
@@ -994,7 +971,7 @@ func (k *Client) SetConsumerAcl(consumer, group string) error {
 	return errors.New("params cannot be empty")
 }
 
-// SetConsumerAcl ...
+// DeleteConsumerAcl removes a group from a consumer
 func (k *Client) DeleteConsumerAcl(consumer, group string) error {
 
 	if consumer != "" && group != "" {
@@ -1014,7 +991,7 @@ func (k *Client) DeleteConsumerAcl(consumer, group string) error {
 	return errors.New("params cannot be empty")
 }
 
-// GetConsumerByKey ...
+// GetConsumerByKey returns a consumer from its basic auth apikey
 func (k *Client) GetConsumerByKey(key string) (*ConsumersResponse, error) {
 
 	if key != "" {
@@ -1041,7 +1018,7 @@ func (k *Client) GetConsumerByKey(key string) (*ConsumersResponse, error) {
  *
  **/
 
-// ShowService
+// ListServices returns all services if service param is empty or info for a given service
 func (k *Client) ListServices(service string) (map[string]ServiceResponse, error) {
 
 	path := endpath(fmt.Sprintf("%s/%s", kongServices, ifempty(service, "")))
@@ -1114,7 +1091,7 @@ func (k *Client) ListServices(service string) (map[string]ServiceResponse, error
 	return serviceMap, nil
 }
 
-// ExistAPI ...
+// ExistService checks if a given services exists
 func (k *Client) ExistService(service string) bool {
 
 	if service == "" {
@@ -1136,7 +1113,7 @@ func (k *Client) ExistService(service string) bool {
 	return successV.ID != ""
 }
 
-// CreateService
+// CreateService create a service
 func (k *Client) CreateService(payload ServiceCreateBody) (*ServiceResponse, error) {
 
 	successV := &ServiceResponse{}
@@ -1149,7 +1126,7 @@ func (k *Client) CreateService(payload ServiceCreateBody) (*ServiceResponse, err
 	return successV, nil
 }
 
-// UpdateService
+// UpdateService updates a given service
 func (k *Client) UpdateService(service string, payload ServiceCreateBody) (*ServiceResponse, error) {
 
 	path := endpath(fmt.Sprintf("%s/%s", kongApis, ifempty(service, "")))
@@ -1164,7 +1141,7 @@ func (k *Client) UpdateService(service string, payload ServiceCreateBody) (*Serv
 	return successV, nil
 }
 
-// DeleteService
+// DeleteService deletes a given service
 func (k *Client) DeleteService(service string) error {
 
 	path := endpath(fmt.Sprintf("%s/%s", kongServices, service))
@@ -1178,7 +1155,7 @@ func (k *Client) DeleteService(service string) error {
 	return nil
 }
 
-// GetServicePlugins
+// GetServicePlugins returns plugins for a given service
 func (k *Client) GetServicePlugins(service string) (map[string]PluginsResponse, error) {
 
 	if service != "" {
@@ -1214,7 +1191,7 @@ func (k *Client) GetServicePlugins(service string) (map[string]PluginsResponse, 
 	return nil, errors.New("service cannot be empty")
 }
 
-// CreatePluginOnService
+// CreatePluginOnService create a plugin on a service
 func (k *Client) CreatePluginOnService(service string, payload PluginsCreateBody) (*PluginsResponse, error) {
 
 	if service != "" {
@@ -1232,7 +1209,7 @@ func (k *Client) CreatePluginOnService(service string, payload PluginsCreateBody
 	return nil, errors.New("service cannot be empty")
 }
 
-// CreatePluginOnService
+// DeletePluginFromService delete a plugin from a service
 func (k *Client) DeletePluginFromService(service, plugin string) error {
 
 	if service != "" && plugin != "" {
@@ -1257,7 +1234,7 @@ func (k *Client) DeletePluginFromService(service, plugin string) error {
  *
  **/
 
-// ListRoutes
+// ListRoutes returns all routes if service param is empty or info for a given route
 func (k *Client) ListRoutes(route string) (map[string]RouteResponse, error) {
 
 	path := endpath(fmt.Sprintf("%s/%s", kongServices, route))
@@ -1332,7 +1309,7 @@ func (k *Client) ListRoutes(route string) (map[string]RouteResponse, error) {
 	return routesMap, nil
 }
 
-// UpdateRoute
+// UpdateRoute updates a given route
 func (k *Client) UpdateRoute(route string, payload RouteCreateBody) (*RouteResponse, error) {
 
 	if route != "" {
@@ -1350,7 +1327,7 @@ func (k *Client) UpdateRoute(route string, payload RouteCreateBody) (*RouteRespo
 	return nil, errors.New("route cannot be empty")
 }
 
-// DeleteRoute
+// DeleteRoute deletes a given route
 func (k *Client) DeleteRoute(route string) error {
 
 	if route != "" {
@@ -1368,7 +1345,7 @@ func (k *Client) DeleteRoute(route string) error {
 	return errors.New("route cannot be empty")
 }
 
-// ListServiceRoutes
+// ListServiceRoutes all routes of a given service
 func (k *Client) ListServiceRoutes(service, route string) (map[string]RouteResponse, error) {
 
 	failureV := &FailureMessage{}
@@ -1447,7 +1424,7 @@ func (k *Client) ListServiceRoutes(service, route string) (map[string]RouteRespo
 	return routesMap, nil
 }
 
-// CreateRouteOnService
+// CreateRouteOnService creates a route on a given service
 func (k *Client) CreateRouteOnService(service string, payload RouteCreateBody) (*RouteResponse, error) {
 
 	if service != "" {
@@ -1464,7 +1441,7 @@ func (k *Client) CreateRouteOnService(service string, payload RouteCreateBody) (
 	return nil, errors.New("service cannot be empty")
 }
 
-// UpdateRouteForService
+// UpdateRouteForService updates a given route on a service
 func (k *Client) UpdateRouteForService(service, route string, payload RouteCreateBody) (*RouteResponse, error) {
 
 	if service != "" && route != "" {
@@ -1482,7 +1459,7 @@ func (k *Client) UpdateRouteForService(service, route string, payload RouteCreat
 	return nil, errors.New("params cannot be empty")
 }
 
-// DeleteRouteForService
+// DeleteRouteForService deletes a given route from a service
 func (k *Client) DeleteRouteForService(service, route string) error {
 
 	if service != "" && route != "" {
