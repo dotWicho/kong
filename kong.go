@@ -372,9 +372,8 @@ type RouteResponse struct {
 // RouteListResponse holds responses when getting all routes ( GET schema://server:port/routes/
 //  or schema://server:port/services/{{SERVICE}}/routes/ )
 type RouteListResponse struct {
-	Data  []RouteResponse `json:"data"`
-	Next  string          `json:"next"`
-	Total int             `json:"total"`
+	Data []RouteResponse `json:"data"`
+	Next string          `json:"next"`
 }
 
 /**
@@ -1121,7 +1120,6 @@ func (k *Client) ListServices(service string) (map[string]ServiceResponse, error
 			return nil, errors.New("unable to get results")
 		}
 	}
-
 	return serviceMap, nil
 }
 
@@ -1196,7 +1194,9 @@ func (k *Client) PurgeServices() error {
 		for _, service := range services {
 			plugins, errP := k.ListServicePlugins(service.ID)
 			if errP != nil {
-				return errP
+				if errP.Error() != "service without plugins defined" {
+					return errP
+				}
 			}
 			for _, plugin := range plugins {
 				if errp := k.DeletePluginFromService(service.ID, plugin.ID); errp != nil {
@@ -1205,7 +1205,9 @@ func (k *Client) PurgeServices() error {
 			}
 			routes, errR := k.ListServiceRoutes(service.ID)
 			if errR != nil {
-				return errR
+				if errR.Error() != "service without routes defined" {
+					return errR
+				}
 			}
 			for _, route := range routes {
 				if errr := k.DeleteRouteForService(service.ID, route.ID); errr != nil {
@@ -1249,7 +1251,7 @@ func (k *Client) ListServicePlugins(service string) (map[string]PluginsResponse,
 				pluginsMap[plugin.ID] = pluginDetail
 			}
 		} else {
-			return nil, errors.New("unable to get results")
+			return nil, errors.New("service without plugins defined")
 		}
 
 		return pluginsMap, nil
