@@ -1190,22 +1190,26 @@ func (k *Client) DeleteService(service string) error {
 }
 
 // PurgeConsumers flush all consumers from Kong server
-func (k *Client) PurgeService() error {
+func (k *Client) PurgeServices() error {
 
 	if services, err := k.ListServices(""); err == nil {
 		for _, service := range services {
-			if plugins, errP := k.ListServicePlugins(service.ID); errP == nil {
-				for _, plugin := range plugins {
-					if errP := k.DeletePluginFromService(service.ID, plugin.ID); errP != nil {
-						return errP
-					}
+			plugins, errP := k.ListServicePlugins(service.ID)
+			if errP != nil {
+				return errP
+			}
+			for _, plugin := range plugins {
+				if errp := k.DeletePluginFromService(service.ID, plugin.ID); errp != nil {
+					return errp
 				}
 			}
-			if routes, errR := k.ListServiceRoutes(service.ID); errR == nil {
-				for _, route := range routes {
-					if errR := k.DeleteRouteForService(service.ID, route.ID); errR != nil {
-						return errR
-					}
+			routes, errR := k.ListServiceRoutes(service.ID)
+			if errR != nil {
+				return errR
+			}
+			for _, route := range routes {
+				if errr := k.DeleteRouteForService(service.ID, route.ID); errr != nil {
+					return errr
 				}
 			}
 			if errDelete := k.DeleteService(service.ID); errDelete != nil {
