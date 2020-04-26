@@ -664,8 +664,28 @@ func (k *Client) DeleteAPI(api string) error {
 	return nil
 }
 
-// GetApiPlugins returns plugins for a given api
-func (k *Client) GetApiPlugins(api string) (map[string]PluginsResponse, error) {
+// PurgeAPIs flush all apis from Kong server
+func (k *Client) PurgeAPIs() error {
+
+	if apis, err := k.ListAPIs(""); err == nil {
+		for _, api := range apis {
+			if plugins, errP := k.ListApiPlugins(api.ID); errP == nil {
+				for _, plugin := range plugins {
+					if errP := k.DeletePluginFromApi(api.ID, plugin.ID); errP != nil {
+						return errP
+					}
+				}
+			}
+			if errDelete := k.DeleteAPI(api.ID); errDelete != nil {
+				return errDelete
+			}
+		}
+	}
+	return nil
+}
+
+// ListApiPlugins returns plugins for a given api
+func (k *Client) ListApiPlugins(api string) (map[string]PluginsResponse, error) {
 
 	if api != "" {
 		successV := &PluginsListResponse{}
@@ -684,7 +704,7 @@ func (k *Client) GetApiPlugins(api string) (map[string]PluginsResponse, error) {
 				pluginDetail := PluginsResponse{
 					ID:      plugin.ID,
 					Name:    plugin.Name,
-					APIID:   plugin.APIID,
+					Api:     plugin.Api,
 					Created: plugin.Created,
 					Enabled: plugin.Enabled,
 					Config:  plugin.Config,
@@ -859,6 +879,20 @@ func (k *Client) DeleteConsumer(consumer string) error {
 		return nil
 	}
 	return errors.New("consumer cannot be empty")
+}
+
+// PurgeConsumers flush all consumers from Kong server
+func (k *Client) PurgeConsumers() error {
+
+	if consumers, err := k.ListConsumer(""); err == nil {
+		for _, consumer := range consumers {
+			if errDelete := k.DeleteConsumer(consumer.ID); errDelete != nil {
+				return errDelete
+			}
+		}
+		return err
+	}
+	return nil
 }
 
 // GetConsumerKeyAuth return all basic auth of a consumer
@@ -1155,8 +1189,36 @@ func (k *Client) DeleteService(service string) error {
 	return nil
 }
 
-// GetServicePlugins returns plugins for a given service
-func (k *Client) GetServicePlugins(service string) (map[string]PluginsResponse, error) {
+// PurgeConsumers flush all consumers from Kong server
+func (k *Client) PurgeService() error {
+
+	if services, err := k.ListServices(""); err == nil {
+		for _, service := range services {
+			if plugins, errP := k.ListServicePlugins(service.ID); errP == nil {
+				for _, plugin := range plugins {
+					if errP := k.DeletePluginFromService(service.ID, plugin.ID); errP != nil {
+						return errP
+					}
+				}
+			}
+			if routes, errR := k.ListServiceRoutes(service.ID); errR == nil {
+				for _, route := range routes {
+					if errR := k.DeleteRouteForService(service.ID, route.ID); errR != nil {
+						return errR
+					}
+				}
+			}
+			if errDelete := k.DeleteService(service.ID); errDelete != nil {
+				return errDelete
+			}
+		}
+		return err
+	}
+	return nil
+}
+
+// ListServicePlugins returns plugins for a given service
+func (k *Client) ListServicePlugins(service string) (map[string]PluginsResponse, error) {
 
 	if service != "" {
 		successV := &PluginsListResponse{}
@@ -1175,7 +1237,7 @@ func (k *Client) GetServicePlugins(service string) (map[string]PluginsResponse, 
 				pluginDetail := PluginsResponse{
 					ID:      plugin.ID,
 					Name:    plugin.Name,
-					APIID:   plugin.APIID,
+					Api:     plugin.Api,
 					Created: plugin.Created,
 					Enabled: plugin.Enabled,
 					Config:  plugin.Config,
