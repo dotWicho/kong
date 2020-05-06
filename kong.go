@@ -31,6 +31,8 @@ const (
 	kongKeyAuth string = "key-auth"
 	// kongKeyAuths is a Kong server (>= v1.1.2) endpoint for GetConsumerByKey
 	kongKeyAuths string = "key-auths"
+	// When
+	kongRequestSize string = "10000"
 )
 
 /**
@@ -551,7 +553,7 @@ func (k *Client) ListAPIs(api string) (map[string]APIResponse, error) {
 	if api == "" {
 		successV := &APIListResponse{}
 
-		k.session.AddQueryParam("size", "1000")
+		k.session.AddQueryParam("size", kongRequestSize)
 
 		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
 			return nil, err
@@ -772,7 +774,7 @@ func (k *Client) ListConsumer(consumer string) (map[string]ConsumersResponse, er
 
 	if consumer == "" {
 		successV := &ConsumersListResponse{}
-		k.session.AddQueryParam("size", "1000")
+		k.session.AddQueryParam("size", kongRequestSize)
 
 		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
 			return nil, err
@@ -1063,7 +1065,7 @@ func (k *Client) ListServices(service string) (map[string]ServiceResponse, error
 	if service == "" {
 		successV := &ServiceListResponse{}
 
-		k.session.AddQueryParam("size", "1000")
+		k.session.AddQueryParam("size", kongRequestSize)
 
 		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
 			return nil, err
@@ -1314,7 +1316,7 @@ func (k *Client) ListRoutes(route string) (map[string]RouteResponse, error) {
 	if route != "" {
 		successV := &RouteListResponse{}
 
-		k.session.AddQueryParam("size", "1000")
+		k.session.AddQueryParam("size", kongRequestSize)
 
 		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
 			return nil, err
@@ -1426,7 +1428,7 @@ func (k *Client) ListServiceRoutes(service string) (map[string]RouteResponse, er
 
 		successV := &RouteListResponse{}
 
-		k.session.AddQueryParam("size", "1000")
+		k.session.AddQueryParam("size", kongRequestSize)
 
 		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
 			return nil, err
