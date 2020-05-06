@@ -470,6 +470,7 @@ func (k *Client) NewFromURL(base *url.URL) *Client {
 		}
 		client.auth = client.session.GetBasicAuth()
 	}
+	client.session.Accept("application/json")
 
 	return client
 }
@@ -774,6 +775,7 @@ func (k *Client) ListConsumer(consumer string) (map[string]ConsumersResponse, er
 
 	if consumer == "" {
 		successV := &ConsumersListResponse{}
+
 		k.session.AddQueryParam("size", kongRequestSize)
 
 		if _, err := k.session.BodyAsJSON(nil).Get(path, successV, failureV); err != nil {
