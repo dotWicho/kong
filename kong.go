@@ -410,8 +410,8 @@ func endpath(path string) string {
 
 //#$$=== Client generator functions
 
-// NewClient returns a new Client given a Kong server base url
-func NewClient(base string) *Client {
+// New returns a new Client given a Kong server base url
+func New(base string) *Client {
 
 	baseURL, err := url.Parse(base)
 	if err != nil {
@@ -419,11 +419,11 @@ func NewClient(base string) *Client {
 	}
 
 	client := &Client{}
-	return client.NewFromURL(baseURL)
+	return client.New(baseURL)
 }
 
-// NewClientFromURL returns a new Client given a Kong server base url in URL type
-func NewClientFromURL(base *url.URL) *Client {
+// NewFromURL returns a new Client given a Kong server base url in url/URL type
+func NewFromURL(base *url.URL) *Client {
 
 	baseURL, err := url.Parse(base.String())
 	if err != nil {
@@ -431,11 +431,11 @@ func NewClientFromURL(base *url.URL) *Client {
 	}
 
 	client := &Client{}
-	return client.NewFromURL(baseURL)
+	return client.New(baseURL)
 }
 
-// NewClientFromElements returns a new Client given a Kong server elements (schema, host, port)
-func NewClientFromElements(_schema, _host, _port, _user, _pass string) *Client {
+// NewFromElements returns a new Client given a Kong server elements (schema, host, port)
+func NewFromElements(_schema, _host, _port, _user, _pass string) *Client {
 
 	scheme := ifempty(_schema, "http://")
 	host := ifempty(_host, "localhost")
@@ -452,13 +452,13 @@ func NewClientFromElements(_schema, _host, _port, _user, _pass string) *Client {
 	baseURL.User = url.UserPassword(_user, _pass)
 
 	client := &Client{}
-	return client.NewFromURL(baseURL)
+	return client.New(baseURL)
 }
 
 //#$$=== Client functions definitions
 
 // NewFromURL return a copy of Client changing just a base url
-func (k *Client) NewFromURL(base *url.URL) *Client {
+func (k *Client) New(base *url.URL) *Client {
 
 	client := &Client{}
 	client.session = requist.New(base.String())
