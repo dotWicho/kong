@@ -20,12 +20,15 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
-      - name: Setting secrets to get provate repository
+      - name: Setting secrets to get private repository
         run: |
           git config --global url."https://dotWicho:${{ secrets.GithubActions }}@github.com/".insteadOf "https://github.com/"
 
       - name: Get dependencies
         run: |
+          export GOPROXY="https://proxy.golang.org,direct"
+          export GO111MODULE=""
+
           go get -v -t -d ./...
           if [ -f Gopkg.toml ]; then
               curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
