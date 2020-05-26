@@ -23,12 +23,6 @@ jobs:
       - name: Get dependencies
         run: |
           git config --global url."https://dotWicho:${{ secrets.GithubActions }}@github.com/".insteadOf "https://github.com/"
-
-          export GOPROXY="https://proxy.golang.org,direct"
-          export GO111MODULE=""
-
-          go env
-
           go get -v -t -d ./...
           if [ -f Gopkg.toml ]; then
               curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
