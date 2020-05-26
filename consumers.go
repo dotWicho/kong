@@ -46,8 +46,8 @@ type ConsumersList struct {
 	Total int        `json:"total,omitempty"`
 }
 
-// NewConsumer returns Consumers implementation
-func NewConsumer(kong *Client) *Consumers {
+// NewConsumers returns Consumers implementation
+func NewConsumers(kong *Client) *Consumers {
 
 	_consumer := &Consumers{
 		kong:     kong,
