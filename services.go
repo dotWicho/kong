@@ -62,7 +62,7 @@ type ClientCertificate struct {
 	ID string `json:"id,omitempty"`
 }
 
-// NewApis returns Apis implementation
+// NewApis returns Services implementation
 func NewServices(kong *Client) *Services {
 	_service := &Services{
 		kong:    kong,
@@ -79,7 +79,7 @@ func NewServices(kong *Client) *Services {
  *
  **/
 
-// Get returns all services if service param is empty or info for a given service
+// Get returns a non nil Service is exist
 func (ks *Services) Get(id string) (*Service, error) {
 
 	if id != "" {
@@ -122,7 +122,7 @@ func (ks *Services) Create(body Service) (*Service, error) {
 	return &ks.service, nil
 }
 
-// UpdateService updates a given service
+// Update updates a given service
 func (ks *Services) Update(body Service) (*Service, error) {
 
 	if ks.Exist(body.Name) {
@@ -144,13 +144,13 @@ func (ks *Services) Delete(id string) error {
 
 	if ks.Exist(id) {
 		if _, err := ks.Get(id); err != nil {
-			if plugins, errP := ks.Plugins(); errP == nil {
-				for _, _plugin := range plugins {
+			if _plugins, errP := ks.Plugins(); errP == nil {
+				for _, _plugin := range _plugins {
 					_ = ks.DeletePlugin(_plugin.ID)
 				}
 			}
-			if routes, errR := ks.Routes(); errR == nil {
-				for _, _route := range routes {
+			if _routes, errR := ks.Routes(); errR == nil {
+				for _, _route := range _routes {
 					_ = ks.DeleteRoute(_route.ID)
 				}
 			}
@@ -243,7 +243,7 @@ func (ks *Services) DeleteRoute(id string) error {
 	return errors.New("service cannot be null nor empty")
 }
 
-// Purge flush all consumers from Kong server
+// Purge flush all services from Kong server
 func (ks *Services) Purge() error {
 
 	if serviceMap, err := ks.AsMap(); err == nil {
@@ -325,7 +325,7 @@ func (ks *Services) DeletePlugin(id string) error {
 	return errors.New("service cannot be null nor empty")
 }
 
-// AsMap returns all Service defined as a map
+// AsMap returns as Map all services defined
 func (ks *Services) AsMap() (map[string]Service, error) {
 
 	if ks.service.ID != "" {
@@ -371,5 +371,6 @@ func (ks *Services) AsMap() (map[string]Service, error) {
 
 // selfPath returns the path for actual ks.service
 func (ks *Services) selfPath() string {
+
 	return fmt.Sprintf("%s/%s", kongServices, ks.service.ID)
 }
