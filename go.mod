@@ -1,4 +1,4 @@
-module github.com/dotWicho/kong/v2
+module github.com/dotWicho/kong
 
 go 1.14
 
