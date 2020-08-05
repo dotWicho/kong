@@ -6,7 +6,7 @@ jobs:
     strategy:
       matrix:
         goVer: [1.14.x]
-        platform: [ubuntu-lates]
+        platform: [ubuntu-latest]
 
     runs-on: ${{ matrix.platform }}
 
