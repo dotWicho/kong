@@ -26,6 +26,7 @@ type apis interface {
 	RemoveAuthentication(auth Authentication) error
 
 	AsMap() (map[string]Api, error)
+	AsRaw() *Api
 }
 
 // Apis implements apis interface{}
@@ -402,4 +403,10 @@ func (ka *Apis) AsMap() (map[string]Api, error) {
 		list = &ApiList{}
 	}
 	return apisMap, nil
+}
+
+// AsRaw returns the current Api
+func (ka *Apis) AsRaw() *Api {
+
+	return ka.api
 }
