@@ -22,5 +22,5 @@ const (
 	// kongKeyAuths is a Kong server (>= v1.1.2) endpoint for GetConsumerByKey
 	kongKeyAuths string = "key-auths"
 	// When
-	kongRequestSize string = "10000"
+	kongRequestSize string = "1000"
 )
