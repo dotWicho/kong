@@ -3,19 +3,27 @@ package kong
 import (
 	"errors"
 	"fmt"
+	"github.com/dotWicho/utilities"
 )
 
 // apis interface holds Kong Apis Methods
 type apis interface {
-	Get(id string) (*Api, error)
+	Get(id string) *Apis
 	Exist(id string) bool
-	Create(body Api) (*Api, error)
-	Update(body Api) (*Api, error)
+	Create(body Api) *Apis
+	Update(body Api) *Apis
 	Delete(id string) error
 	Purge() error
-	Plugins(id string) (map[string]Plugin, error)
+
+	Plugins() (map[string]Plugin, error)
 	CreatePlugin(body Plugin) (*Plugin, error)
 	DeletePlugin(id string) error
+
+	GetAcl() []string
+	SetAcl(groups []string) error
+	RevokeAcl(group string) error
+	SetAuthentication(auth Authentication) error
+	RemoveAuthentication(auth Authentication) error
 
 	AsMap() (map[string]Api, error)
 }
@@ -23,8 +31,8 @@ type apis interface {
 // Apis implements apis interface{}
 type Apis struct {
 	kong *Client
-	api  Api
-	fail FailureMessage
+	api  *Api
+	fail *FailureMessage
 }
 
 // Kong Apis representation
@@ -47,12 +55,15 @@ type ApiList struct {
 
 // NewApis returns Apis implementation
 func NewApis(kong *Client) *Apis {
-	_apis := &Apis{
-		kong: kong,
-		api:  Api{},
-		fail: FailureMessage{},
+
+	if kong != nil && kong.Session != nil {
+		return &Apis{
+			kong: kong,
+			api:  &Api{},
+			fail: &FailureMessage{},
+		}
 	}
-	return _apis
+	return nil
 }
 
 /**
@@ -62,105 +73,106 @@ func NewApis(kong *Client) *Apis {
  **/
 
 // Get returns a non nil Api is exist
-func (ka *Apis) Get(id string) (*Api, error) {
+func (ka *Apis) Get(id string) *Apis {
 
-	if id != "" {
-		path := endpath(fmt.Sprintf("%s/%s", kongApis, id))
+	if len(id) > 0 {
+		path := fmt.Sprintf("%s/%s", kongApis, id)
 
 		if _, err := ka.kong.Session.BodyAsJSON(nil).Get(path, ka.api, ka.fail); err != nil {
-			return nil, err
+			ka.api = &Api{}
 		}
-		return &ka.api, nil
 	}
-	return nil, errors.New("id cannot be null nor empty")
+	return ka
 }
 
 // Exist checks if given api exist
 func (ka *Apis) Exist(id string) bool {
 
-	if id == "" {
+	if len(id) == 0 {
 		return false
 	}
-	path := endpath(fmt.Sprintf("%s/%s", kongApis, id))
+	path := fmt.Sprintf("%s/%s", kongApis, id)
 
 	if _, err := ka.kong.Session.BodyAsJSON(nil).Get(path, ka.api, ka.fail); err != nil {
 		return false
 	}
 
-	if ka.fail.Message != "" {
+	if len(ka.fail.Message) > 0 {
 		return false
 	}
 
 	return ka.api.ID != ""
 }
 
-// CreateAPI create an api
-func (ka *Apis) Create(body Api) (*Api, error) {
+// Create create an api
+func (ka *Apis) Create(body Api) *Apis {
 
+	body.ID = ""
 	if _, err := ka.kong.Session.BodyAsJSON(body).Post(kongApis, ka.api, ka.fail); err != nil {
-		return nil, err
+		ka.api = &Api{}
 	}
-
-	return &ka.api, nil
+	return ka
 }
 
-// UpdateAPI update a given api
-func (ka *Apis) Update(body Api) (*Api, error) {
+// Update update a given api
+func (ka *Apis) Update(body Api) *Apis {
 
 	if ka.Exist(body.Name) {
 
-		path := endpath(fmt.Sprintf("%s/%s", kongApis, body.Name))
+		path := fmt.Sprintf("%s/%s", kongApis, body.Name)
 		body.ID = ""
 
 		if _, err := ka.kong.Session.BodyAsJSON(body).Patch(path, ka.api, ka.fail); err != nil {
-			return nil, err
+			ka.api = &Api{}
 		}
-		return &ka.api, nil
 	}
-	return nil, errors.New(fmt.Sprintf("api %s dont exist", body.Name))
+	return ka
 }
 
-// DeleteAPI delete a given api
+// Delete delete a given api
 func (ka *Apis) Delete(id string) error {
 
 	if ka.Exist(id) {
 
-		path := endpath(fmt.Sprintf("%s/%s", kongApis, id))
+		path := fmt.Sprintf("%s/%s", kongApis, id)
 
 		if _, err := ka.kong.Session.BodyAsJSON(nil).Delete(path, ka.api, ka.fail); err != nil {
 			return err
 		}
+		ka.api = &Api{}
 		return nil
 	}
-	return errors.New(fmt.Sprintf("api %s dont exist", id))
+	return fmt.Errorf("api %s dont exist", id)
 }
 
-// PurgeAPIs flush all apis from Kong server
+// Purge flush all apis from Kong server
 func (ka *Apis) Purge() error {
 
-	if apiMap, err := ka.AsMap(); err == nil {
-		for _, api := range apiMap {
-			if plugins, errP := ka.Plugins(api.ID); errP == nil {
-				for _, plugin := range plugins {
-					if errD := ka.DeletePlugin(plugin.ID); errD != nil {
-						return errP
+	if ka.api.ID != "" {
+		if apiMap, _ := ka.AsMap(); apiMap != nil {
+			for _, api := range apiMap {
+				if plugins, _ := ka.Plugins(); plugins != nil {
+					for _, plugin := range plugins {
+						// We skip any error to complete all plugins
+						_ = ka.DeletePlugin(plugin.ID)
 					}
 				}
-			}
-			if errDelete := ka.Delete(api.ID); errDelete != nil {
-				return errDelete
+				if err := ka.Delete(api.ID); err != nil {
+					return err
+				}
 			}
 		}
+		return nil
 	}
-	return nil
+	return errors.New("api cannot be empty")
 }
 
-// ListApiPlugins returns plugins for a given api
-func (ka *Apis) Plugins(id string) (map[string]Plugin, error) {
+// Plugins returns plugins for a given api
+func (ka *Apis) Plugins() (map[string]Plugin, error) {
 
-	if id != "" {
+	if ka.api.ID != "" {
 
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongApis, id, kongPlugins))
+		path := utilities.EndsWithSlash(fmt.Sprintf("%s/%s/%s", kongApis, ka.api.ID, kongPlugins))
 
 		plugins := &PluginList{}
 
@@ -180,23 +192,21 @@ func (ka *Apis) Plugins(id string) (map[string]Plugin, error) {
 					Enabled: plugin.Enabled,
 					Config:  plugin.Config,
 				}
-				pluginsMap[plugin.ID] = pluginDetail
+				pluginsMap[plugin.Name] = pluginDetail
 			}
-		} else {
-			return nil, errors.New("unable to get results")
+			return pluginsMap, nil
 		}
-
-		return pluginsMap, nil
+		return nil, fmt.Errorf("api %s has no defined plugins", ka.api.ID)
 	}
-	return nil, errors.New("id cannot be empty")
+	return nil, errors.New("api cannot be empty")
 }
 
-// CreatePluginOnApi create a plugin on an api
+// CreatePlugin create a plugin on an api
 func (ka *Apis) CreatePlugin(body Plugin) (*Plugin, error) {
 
 	if ka.api.ID != "" {
 		//
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongApis, ka.api.ID, kongPlugins))
+		path := utilities.EndsWithSlash(fmt.Sprintf("%s/%s/%s", kongApis, ka.api.ID, kongPlugins))
 
 		plugin := &Plugin{}
 
@@ -214,7 +224,7 @@ func (ka *Apis) DeletePlugin(id string) error {
 	if ka.api.ID != "" {
 		if id != "" {
 
-			path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongApis, ka.api.ID, kongPlugins, id))
+			path := utilities.EndsWithSlash(fmt.Sprintf("%s/%s/%s/%s", kongApis, ka.api.ID, kongPlugins, id))
 
 			plugin := &Plugin{}
 
@@ -228,36 +238,168 @@ func (ka *Apis) DeletePlugin(id string) error {
 	return errors.New("api cannot be null nor empty")
 }
 
+// GetAcl returns context of a whitelist
+func (ka *Apis) GetAcl() []string {
+
+	if ka.api.ID != "" {
+		//
+		if plugins, err := ka.Plugins(); err != nil {
+			if plugins["acl"].ID != "" {
+				return plugins["acl"].Config.(ACLConfig).Whitelist
+			}
+		}
+	}
+	return nil
+}
+
+// SetAcl creates an entry on apis plugins of type acl
+func (ka *Apis) SetAcl(groups []string) error {
+
+	config := ACLConfig{
+		HideGroupsHeader: false,
+		Blacklist:        nil,
+		Whitelist:        groups,
+	}
+	_, err := ka.CreatePlugin(Plugin{Name: "acl", Enabled: true, Config: config})
+	return err
+}
+
+// RevokeAcl delete an entry on apis plugins of type acl
+func (ka *Apis) RevokeAcl(group string) error {
+
+	if ka.api.ID != "" {
+		erase := -1
+
+		groups := ka.GetAcl()
+		for index, value := range groups {
+			if value == group {
+				erase = index
+			}
+		}
+		if erase > -1 {
+			groups[erase] = groups[len(groups)-1]
+			groups[len(groups)-1] = ""
+			groups = groups[:len(groups)-1]
+
+			_ = ka.DeletePlugin("acl")
+			return ka.SetAcl(groups)
+		}
+		return fmt.Errorf("%s is not on the whitelist", group)
+	}
+	return errors.New("api cannot be empty")
+}
+
+// SetAuthentication creates an entry on apis plugins with type provided
+func (ka *Apis) SetAuthentication(auth Authentication) error {
+
+	if ka.api.ID != "" {
+		var config interface{}
+
+		switch auth {
+		case Basic:
+			config = struct {
+				HideCredentials bool `json:"hide_credentials,omitempty"`
+				Anonymous       bool `json:"anonymous,omitempty"`
+			}{HideCredentials: false, Anonymous: false}
+		case JWT:
+			config = struct {
+				URIParamNames     []string `json:"uri_param_names,omitempty"`
+				CookieNames       []string `json:"cookie_names,omitempty"`
+				HeaderNames       []string `json:"header_names,omitempty"`
+				SecretIsBase64    bool     `json:"secret_is_base64,omitempty"`
+				Anonymous         string   `json:"anonymous,omitempty"`
+				RunOnPreflight    bool     `json:"run_on_preflight,omitempty"`
+				MaximumExpiration int      `json:"maximum_expiration,omitempty"`
+			}{URIParamNames: []string{"jwt"}, RunOnPreflight: true, MaximumExpiration: 0}
+		case HMAC:
+			config = struct {
+				ClockSkew           int  `json:"clock_skew,omitempty"`
+				HideCredentials     bool `json:"hide_credentials,omitempty"`
+				Anonymous           bool `json:"anonymous,omitempty"`
+				ValidateRequestBody bool `json:"validate_request_body,omitempty"`
+				EnforceHeaders      bool `json:"enforce_headers,omitempty"`
+				Algorithms          bool `json:"algorithms,omitempty"`
+			}{HideCredentials: true, Anonymous: false, ClockSkew: 300}
+		case KeyAuth:
+			config = struct {
+				KeyNames        []string `json:"key_names,omitempty"`
+				KeyInBody       bool     `json:"key_in_body,omitempty"`
+				Anonymous       string   `json:"anonymous,omitempty"`
+				RunOnPreflight  bool     `json:"run_on_preflight,omitempty"`
+				HideCredentials bool     `json:"hide_credentials,omitempty"`
+			}{KeyNames: []string{"apikey"}, KeyInBody: false, HideCredentials: false, RunOnPreflight: true}
+		case OAuth:
+			config = struct {
+				Scopes                  []string `json:"scopes,omitempty"`
+				MandatoryScope          bool     `json:"mandatory_scope,omitempty"`
+				EnableAuthorizationCode bool     `json:"enable_authorization_code,omitempty"`
+				HashSecret              bool     `json:"hash_secret,omitempty"`
+				HideCredentials         bool     `json:"hide_credentials,omitempty"`
+			}{
+				Scopes:                  []string{"email", "phone", "address"},
+				MandatoryScope:          true,
+				HideCredentials:         false,
+				EnableAuthorizationCode: true,
+				HashSecret:              false}
+		default:
+			return errors.New("unknown authentication type")
+		}
+
+		_, err := ka.CreatePlugin(Plugin{Name: string(auth), Enabled: true, Config: config})
+		return err
+	}
+	return errors.New("api cannot be null nor empty")
+}
+
+// RemoveAuthentication delete an entry on apis plugins with type provided
+func (ka *Apis) RemoveAuthentication(auth Authentication) error {
+
+	if ka.api.ID != "" {
+		switch auth {
+		case Basic:
+		case JWT:
+		case HMAC:
+		case KeyAuth:
+		case OAuth:
+		default:
+			return errors.New("unknown authentication type")
+		}
+
+		err := ka.DeletePlugin(string(auth))
+		return err
+	}
+	return errors.New("api cannot be null nor empty")
+}
+
 // AsMap returns all Apis defined as a map
 func (ka *Apis) AsMap() (map[string]Api, error) {
 
-	path := endpath(fmt.Sprintf("%s/", kongApis))
-
 	apisMap := make(map[string]Api)
-	_apis := &ApiList{}
+
+	path := utilities.EndsWithSlash(fmt.Sprintf("%s/", kongApis))
+
+	list := &ApiList{}
 
 	ka.kong.Session.AddQueryParam("size", kongRequestSize)
 
-	if _, err := ka.kong.Session.BodyAsJSON(nil).Get(path, _apis, ka.fail); err != nil {
-		return nil, err
-	}
-
-	if len(_apis.Data) > 0 {
-		for _, _api := range _apis.Data {
-			apiDetail := Api{
-				ID:           _api.ID,
-				Name:         _api.Name,
-				RequestPath:  _api.RequestPath,
-				Upstream:     _api.Upstream,
-				PreserveHost: _api.PreserveHost,
-				Created:      _api.Created,
-				StripPath:    _api.StripPath,
-			}
-			apisMap[_api.ID] = apiDetail
+	for {
+		if _, err := ka.kong.Session.BodyAsJSON(nil).Get(path, list, ka.fail); err != nil {
+			return nil, err
 		}
-	} else {
-		return nil, errors.New("unable to get results")
-	}
 
-	return nil, nil
+		if len(list.Data) > 0 && len(ka.fail.Message) == 0 {
+			for _, _api := range list.Data {
+				apiDetail := Api{ID: _api.ID, Name: _api.Name, RequestPath: _api.RequestPath, Upstream: _api.Upstream,
+					PreserveHost: _api.PreserveHost, Created: _api.Created, StripPath: _api.StripPath}
+				apisMap[_api.ID] = apiDetail
+			}
+		}
+		if len(list.Next) > 0 {
+			path = list.Next
+		} else {
+			break
+		}
+		list = &ApiList{}
+	}
+	return apisMap, nil
 }
