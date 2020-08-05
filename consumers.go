@@ -67,7 +67,7 @@ func NewConsumers(kong *Client) *Consumers {
 func (kc *Consumers) Get(id string) (*Consumer, error) {
 
 	if id != "" {
-		path := endpath(fmt.Sprintf("%s/%s", kongConsumers, id))
+		path := fmt.Sprintf("%s/%s", kongConsumers, id)
 
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
 			return nil, err
@@ -84,7 +84,7 @@ func (kc *Consumers) Exist(id string) bool {
 	if id == "" {
 		return false
 	}
-	path := endpath(fmt.Sprintf("%s/%s", kongConsumers, id))
+	path := fmt.Sprintf("%s/%s", kongConsumers, id)
 
 	if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
 		return false
@@ -110,7 +110,7 @@ func (kc *Consumers) Update(body Consumer) (*Consumer, error) {
 
 	if body.Username != "" {
 
-		path := endpath(fmt.Sprintf("%s/%s", kongApis, body.Username))
+		path := fmt.Sprintf("%s/%s", kongApis, body.Username)
 
 		body.ID = ""
 		body.CreatedAt = 0
@@ -128,7 +128,7 @@ func (kc *Consumers) Update(body Consumer) (*Consumer, error) {
 func (kc *Consumers) Delete(id string) error {
 
 	if id != "" {
-		path := endpath(fmt.Sprintf("%s/%s", kongConsumers, id))
+		path := fmt.Sprintf("%s/%s", kongConsumers, id)
 
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Patch(path, kc.consumer, kc.fail); err != nil {
 			return err
@@ -159,7 +159,7 @@ func (kc *Consumers) GetKeyAuth() (map[string]KeyAuthData, error) {
 
 	if kc.consumer.ID != "" {
 
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongKeyAuth))
+		path := fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongKeyAuth)
 
 		keyAuths := &BasicKeyAuth{}
 
@@ -189,11 +189,9 @@ func (kc *Consumers) GetKeyAuth() (map[string]KeyAuthData, error) {
 func (kc *Consumers) SetKeyAuth(key string) error {
 
 	if kc.consumer.ID != "" && key != "" {
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongKeyAuth))
+		path := fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongKeyAuth)
 
-		payload := &KeyAuthData{
-			Key: key,
-		}
+		payload := &KeyAuthData{Key: key}
 
 		if _, err := kc.kong.Session.BodyAsJSON(payload).Post(path, kc.consumer, kc.fail); err != nil {
 			return err
@@ -207,11 +205,9 @@ func (kc *Consumers) SetKeyAuth(key string) error {
 func (kc *Consumers) CreateKeyAuth() error {
 
 	if kc.consumer.ID != "" {
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongKeyAuth))
+		path := fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongKeyAuth)
 
-		payload := &KeyAuthData{
-			Key: "",
-		}
+		payload := &KeyAuthData{Key: ""}
 
 		if _, err := kc.kong.Session.BodyAsJSON(payload).Post(path, kc.consumer, kc.fail); err != nil {
 			return err
@@ -225,7 +221,7 @@ func (kc *Consumers) CreateKeyAuth() error {
 func (kc *Consumers) DeleteKeyAuth(key string) error {
 
 	if kc.consumer.ID != "" && key != "" {
-		path := endpath(fmt.Sprintf("%s/%s/%s/%s", kongConsumers, kc.consumer.ID, kongKeyAuth, key))
+		path := fmt.Sprintf("%s/%s/%s/%s", kongConsumers, kc.consumer.ID, kongKeyAuth, key)
 
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Delete(path, kc.consumer, kc.fail); err != nil {
 			return err
@@ -240,7 +236,7 @@ func (kc *Consumers) CreateAcl(group string) error {
 
 	if kc.consumer.ID != "" && group != "" {
 
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongAcls))
+		path := fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongAcls)
 
 		payload := &AclBody{
 			Group: group,
@@ -265,7 +261,7 @@ func (kc *Consumers) DeleteAcl(group string) error {
 		}
 		success := &AclResponse{}
 
-		path := endpath(fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongAcls))
+		path := fmt.Sprintf("%s/%s/%s", kongConsumers, kc.consumer.ID, kongAcls)
 
 		if _, err := kc.kong.Session.BodyAsJSON(payload).Post(path, success, kc.fail); err != nil {
 			return err
@@ -281,7 +277,7 @@ func (kc *Consumers) ByKey(key string) (*Consumer, error) {
 	if key != "" {
 		if kc.kong.KongVersion >= 112 {
 
-			path := endpath(fmt.Sprintf("%s/%s/%s", kongKeyAuths, key, kongConsumer))
+			path := fmt.Sprintf("%s/%s/%s", kongKeyAuths, key, kongConsumer)
 
 			if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
 				return nil, err
@@ -296,29 +292,37 @@ func (kc *Consumers) ByKey(key string) (*Consumer, error) {
 // AsMap returns all defined Consumers in a map
 func (kc *Consumers) AsMap() (map[string]Consumer, error) {
 
-	kc.kong.Session.AddQueryParam("size", kongRequestSize)
+	consumersMap := make(map[string]Consumer)
+
+	path := fmt.Sprintf("%s/", kongConsumers)
 
 	list := &ConsumersList{}
-	if _, err := kc.kong.Session.BodyAsJSON(nil).Get(kongConsumers, list, kc.fail); err != nil {
-		return nil, err
-	}
 
-	if len(list.Data) > 0 {
-		consumersMap := make(map[string]Consumer)
-		for _, _consumers := range list.Data {
-			consumerDetail := Consumer{
-				ID:        _consumers.ID,
-				Username:  _consumers.Username,
-				CustomID:  _consumers.CustomID,
-				CreatedAt: _consumers.CreatedAt,
-				Tags:      _consumers.Tags,
-			}
-			consumersMap[_consumers.ID] = consumerDetail
+	kc.kong.Session.AddQueryParam("size", kongRequestSize)
+
+	for {
+		if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, list, kc.fail); err != nil {
+			return nil, err
 		}
-		return consumersMap, nil
-	} else {
-		return nil, errors.New("unable to get results")
-	}
 
-	return nil, nil
+		if len(list.Data) > 0 && len(kc.fail.Message) == 0 {
+			for _, _consumers := range list.Data {
+				consumerDetail := Consumer{
+					ID:        _consumers.ID,
+					Username:  _consumers.Username,
+					CustomID:  _consumers.CustomID,
+					CreatedAt: _consumers.CreatedAt,
+					Tags:      _consumers.Tags,
+				}
+				consumersMap[_consumers.ID] = consumerDetail
+			}
+		}
+		if len(list.Next) > 0 {
+			path = list.Next
+		} else {
+			break
+		}
+		list = &ConsumersList{}
+	}
+	return consumersMap, nil
 }
