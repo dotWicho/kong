@@ -60,3 +60,24 @@ type PluginList struct {
 type EnabledPlugins struct {
 	EnabledPlugins []string `json:"enabled_plugins"`
 }
+
+//
+type ACLConfig struct {
+	HideGroupsHeader bool     `json:"hide_groups_header"`
+	Blacklist        []string `json:"blacklist"`
+	Whitelist        []string `json:"whitelist"`
+}
+
+//
+type Authentication string
+
+//
+const (
+	Basic   Authentication = "basic-auth"
+	JWT                    = "jwt"
+	HMAC                   = "hmac-auth"
+	KeyAuth                = "key-auth"
+	LDAP                   = "ldap-auth"
+	OAuth                  = "oauth2"
+	Session                = "session"
+)
