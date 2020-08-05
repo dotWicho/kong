@@ -243,21 +243,22 @@ func (kr *Routes) DeletePlugin(id string) error {
 // AsMap returns as Map all routes defined
 func (kr *Routes) AsMap() (map[string]Route, error) {
 
-	if kr.route.ID != "" {
+	routeMap := make(map[string]Route)
 
-		path := fmt.Sprintf("%s/", kr.selfPath())
+	path := kr.selfPath()
 
-		routeMap := make(map[string]Route)
+	list := &RouteList{}
 
-		list := &RouteList{}
-
+	if kr.service == nil {
 		kr.kong.Session.AddQueryParam("size", kongRequestSize)
+	}
 
+	for {
 		if _, err := kr.kong.Session.BodyAsJSON(nil).Get(path, list, kr.fail); err != nil {
 			return nil, err
 		}
 
-		if len(list.Data) > 0 {
+		if len(list.Data) > 0 && len(kr.fail.Message) == 0 {
 			for _, route := range list.Data {
 				routeDetails := Route{
 					ID:                      route.ID,
@@ -278,18 +279,22 @@ func (kr *Routes) AsMap() (map[string]Route, error) {
 				}
 				routeMap[route.ID] = routeDetails
 			}
-			return routeMap, nil
 		}
-		return nil, errors.New("no routes defined")
+		if len(list.Next) > 0 {
+			path = list.Next
+		} else {
+			break
+		}
+		list = &RouteList{}
 	}
-	return nil, errors.New("route cannot be null nor empty")
+	return routeMap, nil
 }
 
 // selfPath returns the path for actual kr.route, if kr.service is not null aggregate that info
 func (kr *Routes) selfPath() string {
 
 	if kr.service != nil {
-		return fmt.Sprintf("%s/%s/%s", kongServices, kr.service.ID, kongRoutes)
+		return fmt.Sprintf("%s/%s/%s/", kongServices, kr.service.ID, kongRoutes)
 	}
-	return fmt.Sprintf("%s", kongRoutes)
+	return fmt.Sprintf("%s/", kongRoutes)
 }
