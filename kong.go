@@ -1,7 +1,7 @@
 package kong
 
 import (
-	"fmt"
+	"github.com/dotWicho/logger"
 	"net/url"
 	"strconv"
 	"strings"
@@ -9,9 +9,8 @@ import (
 	"github.com/dotWicho/requist"
 )
 
-/**
- * kong Client
-**/
+// Logger default
+var Logger *logger.StandardLogger = logger.NewLogger(true)
 
 // client interface define all Kong Methods
 type client interface {
@@ -20,12 +19,23 @@ type client interface {
 	CheckConnection() error
 	CheckStatus() (map[string]int, error)
 	SetBasicAuth(username, password string)
+
+	Version() string
+	LuaVersion() string
+	Hostname() string
+
+	getInfoFromServer() error
+	getStatusFromServer() error
 }
 
 // Client Abstraction, implements all base operations against a Kong's server via a Requist instance
 type Client struct {
 	Session *requist.Requist
 
+	Info        *ClusterInfo
+	Status      *ClusterStatus
+	getInfo     bool
+	getStatus   bool
 	Auth        string
 	KongVersion int
 	Url         string
@@ -36,46 +46,33 @@ type Client struct {
 // New returns a new Client given a Kong server base url
 func New(base string) *Client {
 
+	Logger.Debug("[kong] Creating Kong Client with baseURL = %s", base)
 	baseURL, err := url.Parse(base)
-	if err != nil {
-		panic(err)
+	if len(base) == 0 || err != nil {
+		Logger.Debug("[kong] Invalid baseURL")
+		return nil
 	}
 
-	client := &Client{}
-	return client.New(baseURL)
+	_client := &Client{}
+	return _client.New(baseURL)
 }
 
 // NewFromURL returns a new Client given a Kong server base url in url/URL type
 func NewFromURL(base *url.URL) *Client {
 
-	baseURL, err := url.Parse(base.String())
-	if err != nil {
-		panic(err)
+	if baseStr := base.String(); len(baseStr) > 0 {
+
+		Logger.Debug("[kong] Creating Kong Client from url.URL = %s", base.String())
+		baseURL, err := url.Parse(baseStr)
+		if err != nil {
+			Logger.Debug("[kong] Invalid baseURL")
+			return nil
+		}
+
+		_client := &Client{}
+		return _client.New(baseURL)
 	}
-
-	client := &Client{}
-	return client.New(baseURL)
-}
-
-// NewFromElements returns a new Client given a Kong server elements (schema, host, port)
-func NewFromElements(_schema, _host, _port, _user, _pass string) *Client {
-
-	scheme := ifempty(_schema, "http://")
-	host := ifempty(_host, "localhost")
-	port := ifempty(_port, "8001")
-
-	base := fmt.Sprintf("%s%s:%s/", scheme, host, port)
-
-	baseURL, err := url.Parse(base)
-
-	if err != nil {
-		panic(err)
-	}
-
-	baseURL.User = url.UserPassword(_user, _pass)
-
-	client := &Client{}
-	return client.New(baseURL)
+	return nil
 }
 
 //=== Client functions definitions
@@ -83,19 +80,25 @@ func NewFromElements(_schema, _host, _port, _user, _pass string) *Client {
 // NewFromURL return a copy of Client changing just a base url
 func (k *Client) New(base *url.URL) *Client {
 
-	client := &Client{}
 	k.Session = requist.New(base.String())
-	client.Url = base.String()
+	if k.Session != nil {
+		requist.Logger = Logger
+		k.Info = &ClusterInfo{}
+		k.Status = &ClusterStatus{}
+		k.Url = base.String()
 
-	if base.User.String() != "" {
-		if pass, check := base.User.Password(); check {
-			client.SetBasicAuth(base.User.Username(), pass)
+		if base.User.String() != "" {
+			if pass, check := base.User.Password(); check {
+				k.SetBasicAuth(base.User.Username(), pass)
+			}
+			k.Auth = k.Session.GetBasicAuth()
 		}
-		client.Auth = k.Session.GetBasicAuth()
+		k.Session.Accept("application/json")
+		k.Session.SetHeader("Cache-Control", "no-cache")
+		k.Session.SetHeader("Accept-Encoding", "identity")
+		return k
 	}
-	k.Session.Accept("application/json")
-
-	return client
+	return nil
 }
 
 // StatusCode returns result code from last request
@@ -107,15 +110,7 @@ func (k *Client) StatusCode() int {
 // CheckConnection check for a valid connection against a Kong server
 func (k *Client) CheckConnection() error {
 
-	clusterResponse := &ClusterResponse{}
-	failResponse := &FailureMessage{}
-
-	var err error
-	if _, err = k.Session.BodyAsJSON(nil).Get("/", clusterResponse, failResponse); err != nil {
-		return err
-	}
-
-	version := strings.ReplaceAll(clusterResponse.Version, ".", "")
+	version := strings.ReplaceAll(k.Version(), ".", "")
 	if !strings.HasPrefix(version, "0") {
 		version += "0"
 	}
@@ -127,34 +122,97 @@ func (k *Client) CheckConnection() error {
 // CheckStatus returns some metrics from KongAPI server
 func (k *Client) CheckStatus() (map[string]int, error) {
 
-	var clusterStatus interface{}
-
-	if k.KongVersion <= 98 {
-		clusterStatus = &ClusterStatusOld{}
-	} else if k.KongVersion > 98 {
-		clusterStatus = &ClusterStatus{}
-	}
-	failResponse := &FailureMessage{}
-
-	if _, err := k.Session.BodyAsJSON(nil).Get(kongStatus, clusterStatus, failResponse); err != nil {
-		return nil, err
+	if !k.getStatus {
+		_ = k.getStatusFromServer()
 	}
 
 	mapStatus := make(map[string]int)
 
-	mapStatus["Handled"] = clusterStatus.(ClusterStatus).Server.ConnectionsHandled
-	mapStatus["Accepted"] = clusterStatus.(ClusterStatus).Server.ConnectionsAccepted
-	mapStatus["Active"] = clusterStatus.(ClusterStatus).Server.ConnectionsActive
-	mapStatus["Reading"] = clusterStatus.(ClusterStatus).Server.ConnectionsReading
-	mapStatus["Waiting"] = clusterStatus.(ClusterStatus).Server.ConnectionsWaiting
-	mapStatus["Writing"] = clusterStatus.(ClusterStatus).Server.ConnectionsWriting
-	mapStatus["Requests"] = clusterStatus.(ClusterStatus).Server.TotalRequests
+	mapStatus["Handled"] = k.Status.Server.ConnectionsHandled
+	mapStatus["Accepted"] = k.Status.Server.ConnectionsAccepted
+	mapStatus["Active"] = k.Status.Server.ConnectionsActive
+	mapStatus["Reading"] = k.Status.Server.ConnectionsReading
+	mapStatus["Waiting"] = k.Status.Server.ConnectionsWaiting
+	mapStatus["Writing"] = k.Status.Server.ConnectionsWriting
+	mapStatus["Requests"] = k.Status.Server.TotalRequests
 
 	return mapStatus, nil
+}
+
+// DatabaseReachable returns availability of database of Kong API server
+func (k *Client) DatabaseReachable() bool {
+
+	if !k.getStatus {
+		_ = k.getStatusFromServer()
+	}
+	return k.Status.Database.Reachable
 }
 
 // SetBasicAuth update user and pass
 func (k *Client) SetBasicAuth(username, password string) {
 
 	k.Session.SetBasicAuth(username, password)
+	k.Auth = k.Session.GetBasicAuth()
+}
+
+//=== Kong functions info definitions
+
+// NodeID returns node_id of Kong API server
+func (k *Client) NodeID() string {
+
+	if !k.getInfo {
+		_ = k.getInfoFromServer()
+	}
+	return k.Info.NodeID
+}
+
+// Version returns version of Kong API server
+func (k *Client) Version() string {
+
+	if !k.getInfo {
+		_ = k.getInfoFromServer()
+	}
+	return k.Info.Version
+}
+
+// LuaVersion returns version of LUA on Kong API server
+func (k *Client) LuaVersion() string {
+
+	if !k.getInfo {
+		_ = k.getInfoFromServer()
+	}
+	return k.Info.LuaVersion
+}
+
+// Hostname returns the hostname of Kong API server
+func (k *Client) Hostname() string {
+
+	if !k.getInfo {
+		_ = k.getInfoFromServer()
+	}
+	return k.Info.Hostname
+}
+
+// getInfoFromServer launch request to Kong server for ClusterInfo info
+func (k *Client) getInfoFromServer() error {
+
+	failResponse := &FailureMessage{}
+
+	if _, err := k.Session.BodyAsJSON(nil).Get("/", k.Info, failResponse); err != nil {
+		return err
+	}
+	k.getInfo = true
+	return nil
+}
+
+// getStatusFromServer launch request to Kong server for ClusterStatus info
+func (k *Client) getStatusFromServer() error {
+
+	failResponse := &FailureMessage{}
+
+	if _, err := k.Session.BodyAsJSON(nil).Get(kongStatus, k.Status, failResponse); err != nil {
+		return err
+	}
+	k.getStatus = true
+	return nil
 }
