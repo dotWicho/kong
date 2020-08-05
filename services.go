@@ -64,12 +64,15 @@ type ClientCertificate struct {
 
 // NewApis returns Services implementation
 func NewServices(kong *Client) *Services {
-	_service := &Services{
-		kong:    kong,
-		service: Service{},
-		fail:    FailureMessage{},
+
+	if kong != nil {
+		return &Services{
+			kong:    kong,
+			service: Service{},
+			fail:    FailureMessage{},
+		}
 	}
-	return _service
+	return nil
 }
 
 /**
@@ -83,7 +86,7 @@ func NewServices(kong *Client) *Services {
 func (ks *Services) Get(id string) (*Service, error) {
 
 	if id != "" {
-		path := endpath(fmt.Sprintf("%s/%s", kongServices, id))
+		path := fmt.Sprintf("%s/%s", kongServices, id)
 
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, ks.service, ks.fail); err != nil {
 			return nil, err
@@ -99,7 +102,7 @@ func (ks *Services) Exist(id string) bool {
 	if id == "" {
 		return false
 	}
-	path := endpath(fmt.Sprintf("%s/%s", kongServices, id))
+	path := fmt.Sprintf("%s/%s", kongServices, id)
 
 	if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, ks.service, ks.fail); err != nil {
 		return false
@@ -127,7 +130,7 @@ func (ks *Services) Update(body Service) (*Service, error) {
 
 	if ks.Exist(body.Name) {
 
-		path := endpath(fmt.Sprintf("%s/%s", kongServices, ks.service.Name))
+		path := fmt.Sprintf("%s/%s", kongServices, ks.service.Name)
 		body.ID = ""
 
 		if _, err := ks.kong.Session.BodyAsJSON(body).Patch(path, ks.service, ks.fail); err != nil {
@@ -328,21 +331,20 @@ func (ks *Services) DeletePlugin(id string) error {
 // AsMap returns as Map all services defined
 func (ks *Services) AsMap() (map[string]Service, error) {
 
-	if ks.service.ID != "" {
+	serviceMap := make(map[string]Service)
 
-		path := fmt.Sprintf("%s/", kongServices)
+	path := fmt.Sprintf("%s/", kongServices)
 
-		serviceMap := make(map[string]Service)
+	list := &ServiceList{}
 
-		list := &ServiceList{}
+	ks.kong.Session.AddQueryParam("size", kongRequestSize)
 
-		ks.kong.Session.AddQueryParam("size", kongRequestSize)
-
+	for {
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, list, ks.fail); err != nil {
 			return nil, err
 		}
 
-		if len(list.Data) > 0 {
+		if len(list.Data) > 0 && len(ks.fail.Message) == 0 {
 			for _, service := range list.Data {
 				serviceDetails := Service{
 					ID:                service.ID,
@@ -362,11 +364,15 @@ func (ks *Services) AsMap() (map[string]Service, error) {
 				}
 				serviceMap[service.ID] = serviceDetails
 			}
-			return serviceMap, nil
 		}
-		return nil, errors.New("unable to get results")
+		if len(list.Next) > 0 {
+			path = list.Next
+		} else {
+			break
+		}
+		list = &ServiceList{}
 	}
-	return nil, errors.New("service cannot be null nor empty")
+	return serviceMap, nil
 }
 
 // selfPath returns the path for actual ks.service
