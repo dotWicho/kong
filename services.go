@@ -7,20 +7,21 @@ import (
 
 // services interface holds Kong Services Methods
 type services interface {
-	Get(id string) (*Service, error)
+	Get(id string) *Services
 	Exist(id string) bool
-	Create(body Service) (*Service, error)
-	Update(body Service) (*Service, error)
+	Create(body Service) *Services
+	Update(body Service) *Services
 	Delete(id string) error
-	Routes() (map[string]Route, error)
-	CreateRoute(body Route) (*Route, error)
+	Routes() map[string]Route
+	CreateRoute(body Route) *Route
 	DeleteRoute(id string) error
 	Purge() error
-	Plugins() (map[string]Plugin, error)
-	CreatePlugin(body Plugin) (*Plugin, error)
+	Plugins() map[string]Plugin
+	CreatePlugin(body Plugin) *Plugin
 	DeletePlugin(id string) error
 
-	AsMap() (map[string]Service, error)
+	AsMap() map[string]Service
+	AsRaw() *Service
 
 	selfPath() string
 }
@@ -28,8 +29,8 @@ type services interface {
 // Services implements services interface{}
 type Services struct {
 	kong    *Client
-	service Service
-	fail    FailureMessage
+	service *Service
+	fail    *FailureMessage
 }
 
 // Service represents a Kong Service
@@ -68,8 +69,8 @@ func NewServices(kong *Client) *Services {
 	if kong != nil {
 		return &Services{
 			kong:    kong,
-			service: Service{},
-			fail:    FailureMessage{},
+			service: &Service{},
+			fail:    &FailureMessage{},
 		}
 	}
 	return nil
@@ -83,23 +84,22 @@ func NewServices(kong *Client) *Services {
  **/
 
 // Get returns a non nil Service is exist
-func (ks *Services) Get(id string) (*Service, error) {
+func (ks *Services) Get(id string) *Services {
 
-	if id != "" {
+	if len(id) > 0 {
 		path := fmt.Sprintf("%s/%s", kongServices, id)
 
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, ks.service, ks.fail); err != nil {
-			return nil, err
+			ks.service = &Service{}
 		}
-		return &ks.service, nil
 	}
-	return nil, errors.New("id cannot be null nor empty")
+	return ks
 }
 
 // Exist checks if a given services exists
 func (ks *Services) Exist(id string) bool {
 
-	if id == "" {
+	if len(id) > 0 {
 		return false
 	}
 	path := fmt.Sprintf("%s/%s", kongServices, id)
@@ -108,25 +108,25 @@ func (ks *Services) Exist(id string) bool {
 		return false
 	}
 
-	if ks.fail.Message != "" {
+	if len(ks.fail.Message) > 0 {
 		return false
 	}
 
-	return ks.service.ID != ""
+	return len(ks.service.ID) > 0
 }
 
 // Create create a service
-func (ks *Services) Create(body Service) (*Service, error) {
+func (ks *Services) Create(body Service) *Services {
 
 	if _, err := ks.kong.Session.BodyAsJSON(body).Post(kongServices, ks.service, ks.fail); err != nil {
-		return nil, err
+		ks.service = &Service{}
 	}
 
-	return &ks.service, nil
+	return ks
 }
 
 // Update updates a given service
-func (ks *Services) Update(body Service) (*Service, error) {
+func (ks *Services) Update(body Service) *Services {
 
 	if ks.Exist(body.Name) {
 
@@ -134,31 +134,26 @@ func (ks *Services) Update(body Service) (*Service, error) {
 		body.ID = ""
 
 		if _, err := ks.kong.Session.BodyAsJSON(body).Patch(path, ks.service, ks.fail); err != nil {
-			return nil, err
+			ks.service = &Service{}
 		}
-
-		return &ks.service, nil
 	}
-	return nil, errors.New(fmt.Sprintf("service %s dont exist", body.Name))
+	return ks
 }
 
 // Delete deletes a given service
 func (ks *Services) Delete(id string) error {
 
-	if ks.Exist(id) {
-		if _, err := ks.Get(id); err != nil {
-			if _plugins, errP := ks.Plugins(); errP == nil {
-				for _, _plugin := range _plugins {
-					_ = ks.DeletePlugin(_plugin.ID)
-				}
-			}
-			if _routes, errR := ks.Routes(); errR == nil {
-				for _, _route := range _routes {
-					_ = ks.DeleteRoute(_route.ID)
-				}
+	if _service := ks.Get(id); _service != nil {
+		if _plugins := ks.Plugins(); _plugins != nil {
+			for _, _plugin := range _plugins {
+				_ = ks.DeletePlugin(_plugin.ID)
 			}
 		}
-
+		if _routes := ks.Routes(); _routes != nil {
+			for _, _route := range _routes {
+				_ = ks.DeleteRoute(_route.ID)
+			}
+		}
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Delete(ks.selfPath(), ks.service, ks.fail); err != nil {
 			return err
 		}
@@ -168,18 +163,18 @@ func (ks *Services) Delete(id string) error {
 }
 
 // Routes returns routes for a given service
-func (ks *Services) Routes() (map[string]Route, error) {
+func (ks *Services) Routes() map[string]Route {
 
-	if ks.service.ID != "" {
+	routesMap := make(map[string]Route)
+
+	if len(ks.service.ID) > 0 {
 		list := &RouteList{}
 
-		path := fmt.Sprintf("%s/%s/", ks.selfPath(), kongRoutes)
+		path := fmt.Sprintf("%s/%s", ks.selfPath(), kongRoutes)
 
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, list, ks.fail); err != nil {
-			return nil, err
+			return nil
 		}
-
-		routesMap := make(map[string]Route)
 
 		if len(list.Data) > 0 {
 			for _, route := range list.Data {
@@ -203,36 +198,34 @@ func (ks *Services) Routes() (map[string]Route, error) {
 				routesMap[route.ID] = routeDetail
 			}
 		} else {
-			return nil, errors.New("service without routes defined")
+			return nil
 		}
-
-		return routesMap, nil
 	}
-	return nil, errors.New("id cannot be empty")
+	return routesMap
 }
 
 // CreateRoute create a route on a service
-func (ks *Services) CreateRoute(body Route) (*Route, error) {
+func (ks *Services) CreateRoute(body Route) *Route {
 
-	if ks.service.ID != "" {
+	if len(ks.service.ID) > 0 {
 
-		path := fmt.Sprintf("%s/%s/", ks.selfPath(), kongRoutes)
+		path := fmt.Sprintf("%s/%s", ks.selfPath(), kongRoutes)
 
 		route := &Route{}
 
 		if _, err := ks.kong.Session.BodyAsJSON(body).Post(path, route, ks.fail); err != nil {
-			return nil, err
+			route = &Route{}
 		}
-		return route, nil
+		return route
 	}
-	return nil, errors.New("service cannot be null nor empty")
+	return nil
 }
 
 // DeleteRoute delete a route from a service
 func (ks *Services) DeleteRoute(id string) error {
 
-	if ks.service.ID != "" {
-		if id != "" {
+	if len(ks.service.ID) > 0 {
+		if len(id) > 0 {
 
 			path := fmt.Sprintf("%s/%s/%s", ks.selfPath(), kongRoutes, id)
 
@@ -249,30 +242,29 @@ func (ks *Services) DeleteRoute(id string) error {
 // Purge flush all services from Kong server
 func (ks *Services) Purge() error {
 
-	if serviceMap, err := ks.AsMap(); err == nil {
+	if serviceMap := ks.AsMap(); serviceMap != nil {
 		for _, service := range serviceMap {
 			_ = ks.Delete(service.ID)
 		}
-		return err
 	}
 	return nil
 }
 
 // Plugins returns plugins for a given service
-func (ks *Services) Plugins() (map[string]Plugin, error) {
+func (ks *Services) Plugins() map[string]Plugin {
 
-	if ks.service.ID != "" {
+	pluginsMap := make(map[string]Plugin)
+
+	if len(ks.service.ID) > 0 {
 		list := &PluginList{}
 
-		path := fmt.Sprintf("%s/%s/", ks.selfPath(), kongPlugins)
+		path := fmt.Sprintf("%s/%s", ks.selfPath(), kongPlugins)
 
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, list, ks.fail); err != nil {
-			return nil, err
+			return nil
 		}
 
-		pluginsMap := make(map[string]Plugin)
-
-		if len(list.Data) > 0 {
+		if len(list.Data) > 0 && len(ks.fail.Message) == 0 {
 			for _, plugin := range list.Data {
 				pluginDetail := Plugin{
 					ID:      plugin.ID,
@@ -284,37 +276,33 @@ func (ks *Services) Plugins() (map[string]Plugin, error) {
 				}
 				pluginsMap[plugin.ID] = pluginDetail
 			}
-		} else {
-			return nil, errors.New("service without plugins defined")
 		}
-
-		return pluginsMap, nil
 	}
-	return nil, errors.New("id cannot be empty")
+	return pluginsMap
 }
 
 // CreatePlugin create a plugin on a service
-func (ks *Services) CreatePlugin(body Plugin) (*Plugin, error) {
+func (ks *Services) CreatePlugin(body Plugin) *Plugin {
 
-	if ks.service.ID != "" {
+	if len(ks.service.ID) > 0 {
 
-		path := fmt.Sprintf("%s/%s/", ks.selfPath(), kongPlugins)
+		path := fmt.Sprintf("%s/%s", ks.selfPath(), kongPlugins)
 
 		plugin := &Plugin{}
 
 		if _, err := ks.kong.Session.BodyAsJSON(body).Post(path, plugin, ks.fail); err != nil {
-			return nil, err
+			plugin = &Plugin{}
 		}
-		return plugin, nil
+		return plugin
 	}
-	return nil, errors.New("service cannot be null nor empty")
+	return nil
 }
 
 // DeletePlugin delete a plugin from a service
 func (ks *Services) DeletePlugin(id string) error {
 
-	if ks.service.ID != "" {
-		if id != "" {
+	if len(ks.service.ID) > 0 {
+		if len(id) > 0 {
 
 			path := fmt.Sprintf("%s/%s/%s", ks.selfPath(), kongPlugins, id)
 
@@ -329,7 +317,7 @@ func (ks *Services) DeletePlugin(id string) error {
 }
 
 // AsMap returns as Map all services defined
-func (ks *Services) AsMap() (map[string]Service, error) {
+func (ks *Services) AsMap() map[string]Service {
 
 	serviceMap := make(map[string]Service)
 
@@ -341,7 +329,7 @@ func (ks *Services) AsMap() (map[string]Service, error) {
 
 	for {
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, list, ks.fail); err != nil {
-			return nil, err
+			return nil
 		}
 
 		if len(list.Data) > 0 && len(ks.fail.Message) == 0 {
@@ -372,7 +360,13 @@ func (ks *Services) AsMap() (map[string]Service, error) {
 		}
 		list = &ServiceList{}
 	}
-	return serviceMap, nil
+	return serviceMap
+}
+
+// AsRaw returns the current service
+func (ks *Services) AsRaw() *Service {
+
+	return ks.service
 }
 
 // selfPath returns the path for actual ks.service
