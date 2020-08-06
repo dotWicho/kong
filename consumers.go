@@ -7,10 +7,10 @@ import (
 
 // consumers interface holds Kong Consumers Methods
 type consumers interface {
-	Get(id string) (*Consumer, error)
+	Get(id string) *Consumers
 	Exist(id string) bool
-	Create(body Consumer) (*Consumer, error)
-	Update(body Consumer) (*Consumer, error)
+	Create(body Consumer) *Consumers
+	Update(body Consumer) *Consumers
 	Delete(id string) error
 	Purge() error
 	GetKeyAuth() (map[string]KeyAuthData, error)
@@ -19,15 +19,16 @@ type consumers interface {
 	DeleteKeyAuth(key string) error
 	CreateAcl(group string) error
 	DeleteAcl(group string) error
-	ByKey(key string) (*Consumer, error)
-	AsMap() (map[string]Consumer, error)
+	ByKey(key string) *Consumer
+	AsMap() map[string]Consumer
+	AsRaw() *Consumer
 }
 
 // Consumers implements consumers interface{}
 type Consumers struct {
 	kong     *Client
-	consumer Consumer
-	fail     FailureMessage
+	consumer *Consumer
+	fail     *FailureMessage
 }
 
 // ConsumersCreateBody holds request body for POST/PUT/PATCH schema://server:port/consumers/
@@ -49,12 +50,14 @@ type ConsumersList struct {
 // NewConsumers returns Consumers implementation
 func NewConsumers(kong *Client) *Consumers {
 
-	_consumer := &Consumers{
-		kong:     kong,
-		consumer: Consumer{},
-		fail:     FailureMessage{},
+	if kong != nil {
+		return &Consumers{
+			kong:     kong,
+			consumer: &Consumer{},
+			fail:     &FailureMessage{},
+		}
 	}
-	return _consumer
+	return nil
 }
 
 /**
@@ -64,24 +67,22 @@ func NewConsumers(kong *Client) *Consumers {
  **/
 
 // Get returns a Consumer if exist
-func (kc *Consumers) Get(id string) (*Consumer, error) {
+func (kc *Consumers) Get(id string) *Consumers {
 
-	if id != "" {
+	if len(id) > 0 {
 		path := fmt.Sprintf("%s/%s", kongConsumers, id)
 
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
-			return nil, err
+			kc.consumer = &Consumer{}
 		}
-
-		return &kc.consumer, nil
 	}
-	return nil, errors.New("id cannot be null nor empty")
+	return kc
 }
 
 // ExistConsumer checks if given consumer exist
 func (kc *Consumers) Exist(id string) bool {
 
-	if id == "" {
+	if len(id) == 0 {
 		return false
 	}
 	path := fmt.Sprintf("%s/%s", kongConsumers, id)
@@ -89,26 +90,26 @@ func (kc *Consumers) Exist(id string) bool {
 	if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
 		return false
 	}
-	if kc.fail.Message != "" {
+	if len(kc.fail.Message) != 0 {
 		return false
 	}
-	return kc.consumer.ID != ""
+	return len(kc.consumer.ID) > 0
 }
 
 // CreateConsumer create a consumer
-func (kc *Consumers) Create(body Consumer) (*Consumer, error) {
+func (kc *Consumers) Create(body Consumer) *Consumers {
 
 	if _, err := kc.kong.Session.BodyAsJSON(body).Post(kongConsumers, kc.consumer, kc.fail); err != nil {
-		return nil, err
+		kc.consumer = &Consumer{}
 	}
 
-	return &kc.consumer, nil
+	return kc
 }
 
 // UpdateConsumer update a given consumer
-func (kc *Consumers) Update(body Consumer) (*Consumer, error) {
+func (kc *Consumers) Update(body Consumer) *Consumers {
 
-	if body.Username != "" {
+	if len(body.Username) > 0 {
 
 		path := fmt.Sprintf("%s/%s", kongApis, body.Username)
 
@@ -116,12 +117,10 @@ func (kc *Consumers) Update(body Consumer) (*Consumer, error) {
 		body.CreatedAt = 0
 
 		if _, err := kc.kong.Session.BodyAsJSON(body).Patch(path, kc.consumer, kc.fail); err != nil {
-			return nil, err
+			kc.consumer = &Consumer{}
 		}
-
-		return &kc.consumer, nil
 	}
-	return nil, errors.New("consumer username cannot be null nor empty")
+	return kc
 }
 
 // DeleteConsumer deletes a given consumer
@@ -141,13 +140,12 @@ func (kc *Consumers) Delete(id string) error {
 // PurgeConsumers flush all consumers from Kong server
 func (kc *Consumers) Purge() error {
 
-	if _consumers, err := kc.AsMap(); err == nil {
+	if _consumers := kc.AsMap(); _consumers != nil {
 		for _, consumer := range _consumers {
 			if errDelete := kc.Delete(consumer.ID); errDelete != nil {
 				return errDelete
 			}
 		}
-		return err
 	}
 	return nil
 }
@@ -272,25 +270,24 @@ func (kc *Consumers) DeleteAcl(group string) error {
 }
 
 // GetConsumerByKey returns a consumer from its basic auth apikey
-func (kc *Consumers) ByKey(key string) (*Consumer, error) {
+func (kc *Consumers) ByKey(key string) *Consumer {
 
-	if key != "" {
+	if len(key) > 0 {
 		if kc.kong.KongVersion >= 112 {
 
 			path := fmt.Sprintf("%s/%s/%s", kongKeyAuths, key, kongConsumer)
 
 			if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
-				return nil, err
+				return nil
 			}
-			return &kc.consumer, nil
+			return kc.consumer
 		}
-		return nil, errors.New("endpoint not available in this version")
 	}
-	return nil, errors.New("key cannot be null nor empty")
+	return nil
 }
 
 // AsMap returns all defined Consumers in a map
-func (kc *Consumers) AsMap() (map[string]Consumer, error) {
+func (kc *Consumers) AsMap() map[string]Consumer {
 
 	consumersMap := make(map[string]Consumer)
 
@@ -302,7 +299,7 @@ func (kc *Consumers) AsMap() (map[string]Consumer, error) {
 
 	for {
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, list, kc.fail); err != nil {
-			return nil, err
+			return nil
 		}
 
 		if len(list.Data) > 0 && len(kc.fail.Message) == 0 {
@@ -324,5 +321,11 @@ func (kc *Consumers) AsMap() (map[string]Consumer, error) {
 		}
 		list = &ConsumersList{}
 	}
-	return consumersMap, nil
+	return consumersMap
+}
+
+// AsMap returns all defined Consumers in a map
+func (kc *Consumers) AsRaw() *Consumer {
+
+	return kc.consumer
 }
