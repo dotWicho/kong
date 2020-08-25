@@ -10,10 +10,10 @@ import (
 )
 
 // Logger default
-var Logger *logger.StandardLogger = logger.NewLogger(true)
+var Logger = /* *logger.StandardLogger */ logger.NewLogger(true)
 
-// client interface define all Kong Methods
-type client interface {
+// ClientOperations interface define all Kong Methods
+type ClientOperations interface {
 	New(base *url.URL) *Client
 	StatusCode() int
 	CheckConnection() error
@@ -210,7 +210,7 @@ func (k *Client) getStatusFromServer() error {
 
 	failResponse := &FailureMessage{}
 
-	if _, err := k.Session.BodyAsJSON(nil).Get(kongStatus, k.Status, failResponse); err != nil {
+	if _, err := k.Session.BodyAsJSON(nil).Get(KongStatus, k.Status, failResponse); err != nil {
 		return err
 	}
 	k.getStatus = true

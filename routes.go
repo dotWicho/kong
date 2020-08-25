@@ -1,21 +1,19 @@
 package kong
 
 import (
-	"errors"
 	"fmt"
 )
 
-// routes interface holds Kong Routes Methods
-type routes interface {
+// RoutesOperations interface holds Kong Routes Methods
+type RoutesOperations interface {
 	Get(id string) *Routes
 	Exist(id string) bool
 	Create(body Route) *Routes
 	Update(body Route) *Routes
 	Delete(id string) error
 	Purge() error
+
 	Plugins() map[string]Plugin
-	CreatePlugin(body Plugin) *Plugin
-	DeletePlugin(id string) error
 
 	AsMap() map[string]Route
 	AsRaw() *Route
@@ -61,11 +59,11 @@ type RouteList struct {
 }
 
 // NewRoutes returns Routes implementation
-func NewRoutes(kong *Client) *Routes {
+func NewRoutes(service *Service, kong *Client) *Routes {
 	_routes := &Routes{
 		kong:    kong,
 		route:   &Route{},
-		service: nil,
+		service: service,
 		fail:    &FailureMessage{},
 	}
 	return _routes
@@ -143,9 +141,9 @@ func (kr *Routes) Update(body Route) *Routes {
 func (kr *Routes) Delete(id string) error {
 
 	if _route := kr.Get(id); _route != nil {
-		if plugins := kr.Plugins(); plugins != nil {
-			for _, _plugin := range plugins {
-				_ = kr.DeletePlugin(_plugin.ID)
+		if _plugins := kr.Plugins(); _plugins != nil {
+			for _, _plugin := range _plugins {
+				_ = NewPlugins(kr, kr.kong).Delete(_plugin.ID)
 			}
 		}
 
@@ -174,64 +172,7 @@ func (kr *Routes) Purge() error {
 // Plugins list all plugins of a given route
 func (kr *Routes) Plugins() map[string]Plugin {
 
-	pluginsMap := make(map[string]Plugin)
-
-	if len(kr.route.ID) > 0 {
-		list := &PluginList{}
-
-		path := fmt.Sprintf("%s/%s/", kr.selfPath(), kongPlugins)
-
-		if _, err := kr.kong.Session.BodyAsJSON(nil).Get(path, list, kr.fail); err != nil {
-			return nil
-		}
-
-		if len(list.Data) > 0 && len(kr.fail.Message) == 0 {
-			for _, plugin := range list.Data {
-				pluginDetail := Plugin{
-					ID:      plugin.ID,
-					Name:    plugin.Name,
-					Api:     plugin.Api,
-					Created: plugin.Created,
-					Enabled: plugin.Enabled,
-					Config:  plugin.Config,
-				}
-				pluginsMap[plugin.ID] = pluginDetail
-			}
-		}
-	}
-	return pluginsMap
-}
-
-// CreatePlugin create a plugin on a route
-func (kr *Routes) CreatePlugin(body Plugin) *Plugin {
-
-	if len(kr.route.ID) > 0 {
-
-		path := fmt.Sprintf("%s/%s", kr.selfPath(), kongPlugins)
-
-		plugin := &Plugin{}
-
-		if _, err := kr.kong.Session.BodyAsJSON(body).Post(path, plugin, kr.fail); err != nil {
-			return nil
-		}
-		return plugin
-	}
-	return nil
-}
-
-// DeletePlugin delete a plugin from a route
-func (kr *Routes) DeletePlugin(id string) error {
-
-	if len(kr.route.ID) > 0 {
-
-		path := fmt.Sprintf("%s/%s/%s", kr.selfPath(), kongPlugins, id)
-
-		if _, err := kr.kong.Session.BodyAsJSON(nil).Delete(path, nil, kr.fail); err != nil {
-			return err
-		}
-		return nil
-	}
-	return errors.New("route cannot be null nor empty")
+	return NewPlugins(kr, kr.kong).AsMap()
 }
 
 // AsMap returns as Map all routes defined
@@ -244,7 +185,7 @@ func (kr *Routes) AsMap() map[string]Route {
 	list := &RouteList{}
 
 	if kr.service == nil {
-		kr.kong.Session.AddQueryParam("size", kongRequestSize)
+		kr.kong.Session.AddQueryParam("size", KongRequestSize)
 	}
 
 	for {
@@ -294,7 +235,7 @@ func (kr *Routes) AsRaw() *Route {
 func (kr *Routes) selfPath() string {
 
 	if kr.service != nil {
-		return fmt.Sprintf("%s/%s/%s", kongServices, kr.service.ID, kongRoutes)
+		return fmt.Sprintf("%s/%s/%s", KongServices, kr.service.ID, KongRoutes)
 	}
-	return kongRoutes
+	return KongRoutes
 }
