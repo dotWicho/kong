@@ -1,26 +1,26 @@
 package kong
 
 const (
-	// KongStatus is a Kong server status endpoint
-	KongStatus string = "/status"
-	// KongService is a Kong server service endpoint on Kong version >= 0.13.x
-	KongServices string = "/services"
-	// KongRoutes is a Kong server routes endpoint on Kong version >= 0.13.x
-	KongRoutes string = "/routes"
-	// KongApis is a Kong server apis endpoint on Kong version < 0.13.x
-	KongApis string = "/apis"
-	// KongConsumer is a Kong server consumer Key-Auth endpoint
-	KongConsumer string = "/consumer"
-	// KongConsumers is a Kong server consumers endpoint
-	KongConsumers string = "/consumers"
-	// KongPlugins is a Kong server plugins endpoint
-	KongPlugins string = "/plugins"
-	// kongAcls is a Kong server plugins acls endpoint
-	KongAcls string = "/acls"
-	// KongKeys is a Kong server key-auth consumers endpoint
-	KongKeyAuth string = "key-auth"
-	// KongKeyAuths is a Kong server (>= v1.1.2) endpoint for GetConsumerByKey
-	KongKeyAuths string = "/key-auths"
-	// KongRequestSize max request size
-	KongRequestSize string = "1000"
+	// StatusURI is a Kong server status endpoint
+	StatusURI string = "/status"
+	// ServicesURI is a Kong server service endpoint on Kong version >= 0.13.x
+	ServicesURI string = "/services"
+	// RoutesURI is a Kong server routes endpoint on Kong version >= 0.13.x
+	RoutesURI string = "/routes"
+	// ApisURI is a Kong server apis endpoint on Kong version < 0.13.x
+	ApisURI string = "/apis"
+	// ConsumerURI is a Kong server consumer Key-Auth endpoint
+	ConsumerURI string = "/consumer"
+	// ConsumersURI is a Kong server consumers endpoint
+	ConsumersURI string = "/consumers"
+	// PluginsURI is a Kong server plugins endpoint
+	PluginsURI string = "/plugins"
+	// AclsURI is a Kong server plugins acls endpoint
+	AclsURI string = "/acls"
+	// KeyAuthURI is a Kong server key-auth consumers endpoint
+	KeyAuthURI string = "key-auth"
+	// KeyAuthsURI is a Kong server (>= v1.1.2) endpoint for GetConsumerByKey
+	KeyAuthsURI string = "/key-auths"
+	// RequestSize max request size
+	RequestSize string = "1000"
 )

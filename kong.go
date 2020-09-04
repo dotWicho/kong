@@ -210,7 +210,7 @@ func (k *Client) getStatusFromServer() error {
 
 	failResponse := &FailureMessage{}
 
-	if _, err := k.Session.BodyAsJSON(nil).Get(KongStatus, k.Status, failResponse); err != nil {
+	if _, err := k.Session.BodyAsJSON(nil).Get(StatusURI, k.Status, failResponse); err != nil {
 		return err
 	}
 	k.getStatus = true

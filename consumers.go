@@ -27,7 +27,7 @@ type ConsumersOperations interface {
 	AsRaw() *Consumer
 }
 
-// Consumers implements consumers interface{}
+// Consumers implements ConsumersOperations interface{}
 type Consumers struct {
 	kong     *Client
 	consumer *Consumer
@@ -73,7 +73,7 @@ func NewConsumers(kong *Client) *Consumers {
 func (kc *Consumers) Get(id string) *Consumers {
 
 	if len(id) > 0 {
-		path := fmt.Sprintf("%s/%s", KongConsumers, id)
+		path := fmt.Sprintf("%s/%s", ConsumersURI, id)
 
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
 			kc.consumer = &Consumer{}
@@ -88,7 +88,7 @@ func (kc *Consumers) Exist(id string) bool {
 	if len(id) == 0 {
 		return false
 	}
-	path := fmt.Sprintf("%s/%s", KongConsumers, id)
+	path := fmt.Sprintf("%s/%s", ConsumersURI, id)
 
 	if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
 		return false
@@ -102,7 +102,7 @@ func (kc *Consumers) Exist(id string) bool {
 // CreateConsumer create a consumer
 func (kc *Consumers) Create(body Consumer) *Consumers {
 
-	if _, err := kc.kong.Session.BodyAsJSON(body).Post(KongConsumers, kc.consumer, kc.fail); err != nil {
+	if _, err := kc.kong.Session.BodyAsJSON(body).Post(ConsumersURI, kc.consumer, kc.fail); err != nil {
 		kc.consumer = &Consumer{}
 	}
 
@@ -114,7 +114,7 @@ func (kc *Consumers) Update(body Consumer) *Consumers {
 
 	if len(body.Username) > 0 {
 
-		path := fmt.Sprintf("%s/%s", KongConsumers, body.Username)
+		path := fmt.Sprintf("%s/%s", ConsumersURI, body.Username)
 
 		body.ID = ""
 		body.CreatedAt = 0
@@ -130,7 +130,7 @@ func (kc *Consumers) Update(body Consumer) *Consumers {
 func (kc *Consumers) Delete(id string) error {
 
 	if id != "" {
-		path := fmt.Sprintf("%s/%s", KongConsumers, id)
+		path := fmt.Sprintf("%s/%s", ConsumersURI, id)
 
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Patch(path, kc.consumer, kc.fail); err != nil {
 			return err
@@ -160,7 +160,7 @@ func (kc *Consumers) GetKeyAuth() map[string]KeyAuthData {
 
 	if len(kc.consumer.ID) > 0 {
 
-		path := fmt.Sprintf("%s/%s/%s", KongConsumers, kc.consumer.ID, KongKeyAuth)
+		path := fmt.Sprintf("%s/%s/%s", ConsumersURI, kc.consumer.ID, KeyAuthURI)
 
 		keyAuths := &BasicKeyAuth{}
 
@@ -187,7 +187,7 @@ func (kc *Consumers) GetKeyAuth() map[string]KeyAuthData {
 func (kc *Consumers) SetKeyAuth(key string) error {
 
 	if len(kc.consumer.ID) > 0 && key != "" {
-		path := fmt.Sprintf("%s/%s/%s", KongConsumers, kc.consumer.ID, KongKeyAuth)
+		path := fmt.Sprintf("%s/%s/%s", ConsumersURI, kc.consumer.ID, KeyAuthURI)
 
 		payload := &KeyAuthData{Key: key}
 
@@ -203,7 +203,7 @@ func (kc *Consumers) SetKeyAuth(key string) error {
 func (kc *Consumers) CreateKeyAuth() error {
 
 	if len(kc.consumer.ID) > 0 {
-		path := fmt.Sprintf("%s/%s/%s", KongConsumers, kc.consumer.ID, KongKeyAuth)
+		path := fmt.Sprintf("%s/%s/%s", ConsumersURI, kc.consumer.ID, KeyAuthURI)
 
 		payload := &KeyAuthData{Key: ""}
 
@@ -219,7 +219,7 @@ func (kc *Consumers) CreateKeyAuth() error {
 func (kc *Consumers) DeleteKeyAuth(key string) error {
 
 	if len(kc.consumer.ID) > 0 && key != "" {
-		path := fmt.Sprintf("%s/%s/%s/%s", KongConsumers, kc.consumer.ID, KongKeyAuth, key)
+		path := fmt.Sprintf("%s/%s/%s/%s", ConsumersURI, kc.consumer.ID, KeyAuthURI, key)
 
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Delete(path, kc.consumer, kc.fail); err != nil {
 			return err
@@ -235,7 +235,7 @@ func (kc *Consumers) ByKey(key string) *Consumer {
 	if len(key) > 0 {
 		if kc.kong.KongVersion >= 112 {
 
-			path := fmt.Sprintf("%s/%s/%s", KongKeyAuths, key, KongConsumer)
+			path := fmt.Sprintf("%s/%s/%s", KeyAuthsURI, key, ConsumerURI)
 
 			if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
 				return nil
@@ -311,11 +311,11 @@ func (kc *Consumers) AsMap() map[string]Consumer {
 
 	consumersMap := make(map[string]Consumer)
 
-	path := fmt.Sprintf("%s/", KongConsumers)
+	path := fmt.Sprintf("%s/", ConsumersURI)
 
 	list := &ConsumersList{}
 
-	kc.kong.Session.AddQueryParam("size", KongRequestSize)
+	kc.kong.Session.AddQueryParam("size", RequestSize)
 
 	for {
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, list, kc.fail); err != nil {

@@ -18,10 +18,10 @@ type RoutesOperations interface {
 	AsMap() map[string]Route
 	AsRaw() *Route
 
-	selfPath() string
+	path() string
 }
 
-// Services implements services interface{}
+// Routes implements RoutesOperations interface{}
 type Routes struct {
 	kong    *Client
 	route   *Route
@@ -42,12 +42,14 @@ type Route struct {
 	RegexPriority           int             `json:"regex_priority,omitempty"`
 	StripPath               bool            `json:"strip_path,omitempty"`
 	PreserveHost            bool            `json:"preserve_host,omitempty"`
+	PathHandling            string          `json:"path_handling,omitempty"`
 	Tags                    []string        `json:"tags,omitempty"`
 	Service                 ServiceRelation `json:"service,omitempty"`
 	CreatedAt               int             `json:"created_at,omitempty"`
 	UpdatedAt               int             `json:"updated_at,omitempty"`
 }
 
+// ServiceRelation just used to hold service.id
 type ServiceRelation struct {
 	ID string `json:"id,omitempty"`
 }
@@ -80,7 +82,7 @@ func NewRoutes(service *Service, kong *Client) *Routes {
 func (kr *Routes) Get(id string) *Routes {
 
 	if len(id) > 0 {
-		path := fmt.Sprintf("%s/%s", kr.selfPath(), id)
+		path := fmt.Sprintf("%s/%s", kr.path(), id)
 
 		if _, err := kr.kong.Session.BodyAsJSON(nil).Get(path, kr.route, kr.fail); err != nil {
 			kr.route = &Route{}
@@ -96,7 +98,7 @@ func (kr *Routes) Exist(id string) bool {
 		return false
 	}
 
-	path := fmt.Sprintf("%s/%s", kr.selfPath(), id)
+	path := fmt.Sprintf("%s/%s", kr.path(), id)
 
 	if _, err := kr.kong.Session.BodyAsJSON(nil).Get(path, kr.route, kr.fail); err != nil {
 		return false
@@ -112,7 +114,7 @@ func (kr *Routes) Exist(id string) bool {
 // Create create a route
 func (kr *Routes) Create(body Route) *Routes {
 
-	path := kr.selfPath()
+	path := kr.path()
 
 	body.ID = ""
 
@@ -126,7 +128,7 @@ func (kr *Routes) Create(body Route) *Routes {
 // Update updates a given route
 func (kr *Routes) Update(body Route) *Routes {
 
-	path := kr.selfPath()
+	path := kr.path()
 
 	body.ID = ""
 
@@ -147,7 +149,7 @@ func (kr *Routes) Delete(id string) error {
 			}
 		}
 
-		path := fmt.Sprintf("%s/%s", kr.selfPath(), id)
+		path := fmt.Sprintf("%s/%s", kr.path(), id)
 
 		if _, err := kr.kong.Session.BodyAsJSON(nil).Delete(path, kr.route, kr.fail); err != nil {
 			return err
@@ -180,12 +182,12 @@ func (kr *Routes) AsMap() map[string]Route {
 
 	routeMap := make(map[string]Route)
 
-	path := kr.selfPath()
+	path := kr.path()
 
 	list := &RouteList{}
 
 	if kr.service == nil {
-		kr.kong.Session.AddQueryParam("size", KongRequestSize)
+		kr.kong.Session.AddQueryParam("size", RequestSize)
 	}
 
 	for {
@@ -232,10 +234,10 @@ func (kr *Routes) AsRaw() *Route {
 }
 
 // selfPath returns the path for actual kr.route, if kr.service is not null aggregate that info
-func (kr *Routes) selfPath() string {
+func (kr *Routes) path() string {
 
 	if kr.service != nil {
-		return fmt.Sprintf("%s/%s/%s", KongServices, kr.service.ID, KongRoutes)
+		return fmt.Sprintf("%s/%s/%s", ServicesURI, kr.service.ID, RoutesURI)
 	}
-	return KongRoutes
+	return RoutesURI
 }

@@ -29,10 +29,10 @@ type ServicesOperations interface {
 	AsMap() map[string]Service
 	AsRaw() *Service
 
-	selfPath() string
+	path() string
 }
 
-// Services implements services interface{}
+// Services implements ServicesOperations interface{}
 type Services struct {
 	kong    *Client
 	service *Service
@@ -65,7 +65,7 @@ type ServiceList struct {
 	Total int       `json:"total"`
 }
 
-// ClientCertificate holds certificate id
+// ClientCertificate just hold certificate.id
 type ClientCertificate struct {
 	ID string `json:"id,omitempty"`
 }
@@ -94,7 +94,7 @@ func NewServices(kong *Client) *Services {
 func (ks *Services) Get(id string) *Services {
 
 	if len(id) > 0 {
-		path := fmt.Sprintf("%s/%s", KongServices, id)
+		path := fmt.Sprintf("%s/%s", ServicesURI, id)
 
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, ks.service, ks.fail); err != nil {
 			ks.service = &Service{}
@@ -109,7 +109,7 @@ func (ks *Services) Exist(id string) bool {
 	if len(id) > 0 {
 		return false
 	}
-	path := fmt.Sprintf("%s/%s", KongServices, id)
+	path := fmt.Sprintf("%s/%s", ServicesURI, id)
 
 	if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, ks.service, ks.fail); err != nil {
 		return false
@@ -125,7 +125,7 @@ func (ks *Services) Exist(id string) bool {
 // Create create a service
 func (ks *Services) Create(body Service) *Services {
 
-	if _, err := ks.kong.Session.BodyAsJSON(body).Post(KongServices, ks.service, ks.fail); err != nil {
+	if _, err := ks.kong.Session.BodyAsJSON(body).Post(ServicesURI, ks.service, ks.fail); err != nil {
 		ks.service = &Service{}
 	}
 
@@ -137,7 +137,7 @@ func (ks *Services) Update(body Service) *Services {
 
 	if ks.Exist(body.Name) {
 
-		path := fmt.Sprintf("%s/%s", KongServices, ks.service.Name)
+		path := fmt.Sprintf("%s/%s", ServicesURI, ks.service.Name)
 		body.ID = ""
 
 		if _, err := ks.kong.Session.BodyAsJSON(body).Patch(path, ks.service, ks.fail); err != nil {
@@ -161,7 +161,7 @@ func (ks *Services) Delete(id string) error {
 				_ = ks.DeleteRoute(_route.ID)
 			}
 		}
-		if _, err := ks.kong.Session.BodyAsJSON(nil).Delete(ks.selfPath(), ks.service, ks.fail); err != nil {
+		if _, err := ks.kong.Session.BodyAsJSON(nil).Delete(ks.path(), ks.service, ks.fail); err != nil {
 			return err
 		}
 		return nil
@@ -323,11 +323,11 @@ func (ks *Services) AsMap() map[string]Service {
 
 	serviceMap := make(map[string]Service)
 
-	path := fmt.Sprintf("%s/", KongServices)
+	path := fmt.Sprintf("%s/", ServicesURI)
 
 	list := &ServiceList{}
 
-	ks.kong.Session.AddQueryParam("size", KongRequestSize)
+	ks.kong.Session.AddQueryParam("size", RequestSize)
 
 	for {
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, list, ks.fail); err != nil {
@@ -371,8 +371,8 @@ func (ks *Services) AsRaw() *Service {
 	return ks.service
 }
 
-// selfPath returns the path for actual ks.service
-func (ks *Services) selfPath() string {
+// path returns the path for actual ks.service
+func (ks *Services) path() string {
 
-	return fmt.Sprintf("%s/%s", KongServices, ks.service.ID)
+	return fmt.Sprintf("%s/%s", ServicesURI, ks.service.ID)
 }

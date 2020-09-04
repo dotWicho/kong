@@ -26,7 +26,7 @@ type ApisOperations interface {
 	AsRaw() *Api
 }
 
-// Apis implements apis interface{}
+// Apis implements ApisOperations interface{}
 type Apis struct {
 	kong *Client
 	api  *Api
@@ -74,7 +74,7 @@ func NewApis(kong *Client) *Apis {
 func (ka *Apis) Get(id string) *Apis {
 
 	if len(id) > 0 {
-		path := fmt.Sprintf("%s/%s", KongApis, id)
+		path := fmt.Sprintf("%s/%s", ApisURI, id)
 
 		if _, err := ka.kong.Session.BodyAsJSON(nil).Get(path, ka.api, ka.fail); err != nil {
 			ka.api = &Api{}
@@ -89,7 +89,7 @@ func (ka *Apis) Exist(id string) bool {
 	if len(id) == 0 {
 		return false
 	}
-	path := fmt.Sprintf("%s/%s", KongApis, id)
+	path := fmt.Sprintf("%s/%s", ApisURI, id)
 
 	if _, err := ka.kong.Session.BodyAsJSON(nil).Get(path, ka.api, ka.fail); err != nil {
 		return false
@@ -106,7 +106,7 @@ func (ka *Apis) Exist(id string) bool {
 func (ka *Apis) Create(body Api) *Apis {
 
 	body.ID = ""
-	if _, err := ka.kong.Session.BodyAsJSON(body).Post(KongApis, ka.api, ka.fail); err != nil {
+	if _, err := ka.kong.Session.BodyAsJSON(body).Post(ApisURI, ka.api, ka.fail); err != nil {
 		ka.api = &Api{}
 	}
 	return ka
@@ -117,7 +117,7 @@ func (ka *Apis) Update(body Api) *Apis {
 
 	if ka.Exist(body.ID) {
 
-		path := fmt.Sprintf("%s/%s", KongApis, body.ID)
+		path := fmt.Sprintf("%s/%s", ApisURI, body.ID)
 		body.ID = ""
 
 		if _, err := ka.kong.Session.BodyAsJSON(body).Patch(path, ka.api, ka.fail); err != nil {
@@ -132,7 +132,7 @@ func (ka *Apis) Delete(id string) error {
 
 	if ka.Exist(id) {
 
-		path := fmt.Sprintf("%s/%s", KongApis, id)
+		path := fmt.Sprintf("%s/%s", ApisURI, id)
 
 		if _, err := ka.kong.Session.BodyAsJSON(nil).Delete(path, ka.api, ka.fail); err != nil {
 			return err
@@ -287,11 +287,11 @@ func (ka *Apis) AsMap() map[string]Api {
 
 	apisMap := make(map[string]Api)
 
-	path := fmt.Sprintf("%s", KongApis)
+	path := fmt.Sprintf("%s", ApisURI)
 
 	list := &ApiList{}
 
-	ka.kong.Session.AddQueryParam("size", KongRequestSize)
+	ka.kong.Session.AddQueryParam("size", RequestSize)
 
 	for {
 		if _, err := ka.kong.Session.BodyAsJSON(nil).Get(path, list, ka.fail); err != nil {
