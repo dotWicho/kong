@@ -41,21 +41,21 @@ type Services struct {
 
 // Service represents a Kong Service
 type Service struct {
-	ID                string            `json:"id,omitempty"`
-	Name              string            `json:"name,omitempty"`
-	CreatedAt         int               `json:"created_at,omitempty"`
-	UpdatedAt         int               `json:"updated_at,omitempty"`
-	Retries           int               `json:"retries,omitempty"`
-	Url               string            `json:"url,omitempty"`
-	Protocol          string            `json:"protocol,omitempty"`
-	Host              string            `json:"host,omitempty"`
-	Port              int               `json:"port,omitempty"`
-	Path              string            `json:"path,omitempty"`
-	ConnectTimeout    int               `json:"connect_timeout"`
-	WriteTimeout      int               `json:"write_timeout,omitempty"`
-	ReadTimeout       int               `json:"read_timeout,omitempty"`
-	Tags              []string          `json:"tags,omitempty"`
-	ClientCertificate ClientCertificate `json:"client_certificate,omitempty"`
+	ID                string             `json:"id,omitempty"`
+	Name              string             `json:"name,omitempty"`
+	CreatedAt         int                `json:"created_at,omitempty"`
+	UpdatedAt         int                `json:"updated_at,omitempty"`
+	Retries           int                `json:"retries,omitempty"`
+	Url               string             `json:"url,omitempty"`
+	Protocol          string             `json:"protocol,omitempty"`
+	Host              string             `json:"host,omitempty"`
+	Port              int                `json:"port,omitempty"`
+	Path              string             `json:"path,omitempty"`
+	ConnectTimeout    int                `json:"connect_timeout,omitempty"`
+	WriteTimeout      int                `json:"write_timeout,omitempty"`
+	ReadTimeout       int                `json:"read_timeout,omitempty"`
+	Tags              []string           `json:"tags,omitempty"`
+	ClientCertificate *ClientCertificate `json:"client_certificate,omitempty"`
 }
 
 // ServiceList define an Array of Service
@@ -65,7 +65,7 @@ type ServiceList struct {
 	Total int       `json:"total"`
 }
 
-// ClientCertificate just hold certificate.id
+// ClientCertificate just hold client_certificate.id
 type ClientCertificate struct {
 	ID string `json:"id,omitempty"`
 }
@@ -369,6 +369,17 @@ func (ks *Services) AsMap() map[string]Service {
 func (ks *Services) AsRaw() *Service {
 
 	return ks.service
+}
+
+// Error returns the current error if any
+func (ks *Services) Error() error {
+
+	message := ks.fail.Message
+	if len(message) > 0 {
+		ks.fail.Message = ""
+		return fmt.Errorf("%s", message)
+	}
+	return nil
 }
 
 // path returns the path for actual ks.service
