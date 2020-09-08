@@ -15,7 +15,9 @@ type PluginsOperations interface {
 	AsMap() map[string]Plugin
 	AsRaw() *Plugin
 
-	selfPath() string
+	Error() error
+
+	path() string
 }
 
 // Plugins implements PluginsOperations interface{}
@@ -45,7 +47,7 @@ func (p *Plugins) Get(id string) *Plugins {
 
 	if len(id) > 0 {
 
-		path := utilities.EndsWithSlash(p.selfPath()) + id
+		path := utilities.EndsWithSlash(p.path()) + id
 		Logger.Debug("[kong.Plugins.Get] path = %s", path)
 		if _, err := p.kong.Session.BodyAsJSON(nil).Get(path, p.plugin, p.fail); err != nil {
 			Logger.Error("[kong.Plugins.Get] Get Error: %s", err.Error())
@@ -59,8 +61,10 @@ func (p *Plugins) Get(id string) *Plugins {
 func (p *Plugins) Create(body Plugin) *Plugins {
 
 	body.ID = ""
-	path := p.selfPath()
+	path := p.path()
 	Logger.Debug("[kong.Plugins.Delete] path = %s", path)
+	p.fail.Message = ""
+
 	if _, err := p.kong.Session.BodyAsJSON(body).Post(path, p.plugin, p.fail); err != nil {
 		Logger.Error("[kong.Plugins.Create] Post Error: %s", err.Error())
 		p.plugin = &Plugin{}
@@ -72,7 +76,7 @@ func (p *Plugins) Create(body Plugin) *Plugins {
 func (p *Plugins) Delete(id string) error {
 
 	if len(id) > 0 {
-		path := utilities.EndsWithSlash(p.selfPath()) + id
+		path := utilities.EndsWithSlash(p.path()) + id
 		Logger.Debug("[kong.Plugins.Delete] path = %s", path)
 
 		if _, err := p.kong.Session.BodyAsJSON(nil).Delete(path, p.plugin, p.fail); err != nil {
@@ -85,7 +89,7 @@ func (p *Plugins) Delete(id string) error {
 	return errors.New("id cannot be null nor empty")
 }
 
-// AsMap
+// AsMap returns as Map all plugins defined
 func (p *Plugins) AsMap() map[string]Plugin {
 
 	pluginsMap := make(map[string]Plugin)
@@ -93,7 +97,7 @@ func (p *Plugins) AsMap() map[string]Plugin {
 
 	p.kong.Session.AddQueryParam("size", RequestSize)
 
-	path := p.selfPath()
+	path := p.path()
 
 	Logger.Debug("[kong.Plugins.AsMap] path = %s", path)
 	for {
@@ -132,25 +136,36 @@ func (p *Plugins) AsMap() map[string]Plugin {
 	return pluginsMap
 }
 
-// AsRaw
+// AsRaw returns the current plugin
 func (p *Plugins) AsRaw() *Plugin {
 
 	return p.plugin
 }
 
+// Error returns the current error if any
+func (p *Plugins) Error() error {
+
+	message := p.fail.Message
+	if len(message) > 0 {
+		p.fail.Message = ""
+		return fmt.Errorf("%s", message)
+	}
+	return nil
+}
+
 // selfPath returns the path for actual p.plugin using p.parent as well
-func (p *Plugins) selfPath() string {
+func (p *Plugins) path() string {
 
 	if p.parent != nil {
 		switch p.parent.(type) {
-		case *Apis:
-			return fmt.Sprintf("%s/%s/plugins", ApisURI, p.parent.(*Apis).api.ID)
+		case *Api:
+			return fmt.Sprintf("%s/%s/plugins", ApisURI, p.parent.(*Api).ID)
 
-		case *Routes:
-			return fmt.Sprintf("%s/%s/plugins", RoutesURI, p.parent.(*Routes).route.ID)
+		case *Route:
+			return fmt.Sprintf("%s/%s/plugins", RoutesURI, p.parent.(*Route).ID)
 
-		case *Services:
-			return fmt.Sprintf("%s/%s/plugins", ServicesURI, p.parent.(*Services).service.ID)
+		case *Service:
+			return fmt.Sprintf("%s/%s/plugins", ServicesURI, p.parent.(*Service).ID)
 
 		}
 	}
