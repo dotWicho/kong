@@ -31,22 +31,22 @@ type Routes struct {
 
 // Route represents a Kong Route
 type Route struct {
-	ID                      string          `json:"id,omitempty"`
-	Name                    string          `json:"name,omitempty"`
-	Protocols               []string        `json:"protocols,omitempty"`
-	Methods                 []string        `json:"methods,omitempty"`
-	Hosts                   []string        `json:"hosts,omitempty"`
-	Paths                   []string        `json:"paths,omitempty"`
-	Headers                 []string        `json:"headers,omitempty"`
-	HTTPSRedirectStatusCode int             `json:"https_redirect_status_code,omitempty"`
-	RegexPriority           int             `json:"regex_priority,omitempty"`
-	StripPath               bool            `json:"strip_path,omitempty"`
-	PreserveHost            bool            `json:"preserve_host,omitempty"`
-	PathHandling            string          `json:"path_handling,omitempty"`
-	Tags                    []string        `json:"tags,omitempty"`
-	Service                 ServiceRelation `json:"service,omitempty"`
-	CreatedAt               int             `json:"created_at,omitempty"`
-	UpdatedAt               int             `json:"updated_at,omitempty"`
+	ID                      string           `json:"id,omitempty"`
+	Name                    string           `json:"name,omitempty"`
+	Protocols               []string         `json:"protocols,omitempty"`
+	Methods                 []string         `json:"methods,omitempty"`
+	Hosts                   []string         `json:"hosts,omitempty"`
+	Paths                   []string         `json:"paths,omitempty"`
+	Headers                 []string         `json:"headers,omitempty"`
+	HTTPSRedirectStatusCode int              `json:"https_redirect_status_code,omitempty"`
+	RegexPriority           int              `json:"regex_priority,omitempty"`
+	StripPath               bool             `json:"strip_path,omitempty"`
+	PreserveHost            bool             `json:"preserve_host,omitempty"`
+	PathHandling            string           `json:"path_handling,omitempty"`
+	Tags                    []string         `json:"tags,omitempty"`
+	Service                 *ServiceRelation `json:"service,omitempty"`
+	CreatedAt               int              `json:"created_at,omitempty"`
+	UpdatedAt               int              `json:"updated_at,omitempty"`
 }
 
 // ServiceRelation just used to hold service.id
@@ -191,6 +191,7 @@ func (kr *Routes) AsMap() map[string]Route {
 	}
 
 	for {
+		kr.fail.Message = ""
 		if _, err := kr.kong.Session.BodyAsJSON(nil).Get(path, list, kr.fail); err != nil {
 			return nil
 		}
@@ -209,6 +210,7 @@ func (kr *Routes) AsMap() map[string]Route {
 					RegexPriority:           route.RegexPriority,
 					StripPath:               route.StripPath,
 					PreserveHost:            route.PreserveHost,
+					PathHandling:            route.PathHandling,
 					Tags:                    route.Tags,
 					Service:                 route.Service,
 					CreatedAt:               route.CreatedAt,
@@ -233,11 +235,25 @@ func (kr *Routes) AsRaw() *Route {
 	return kr.route
 }
 
+// Error returns the current error if any
+func (kr *Routes) Error() error {
+
+	message := kr.fail.Message
+	if len(message) > 0 {
+		kr.fail.Message = ""
+		return fmt.Errorf("%s", message)
+	}
+	return nil
+}
+
 // selfPath returns the path for actual kr.route, if kr.service is not null aggregate that info
 func (kr *Routes) path() string {
 
 	if kr.service != nil {
-		return fmt.Sprintf("%s/%s/%s", ServicesURI, kr.service.ID, RoutesURI)
+		if kr.service.ID == "" {
+			kr.service.ID = NewServices(kr.kong).Get(kr.service.Name).AsRaw().ID
+		}
+		return fmt.Sprintf("%s/%s%s", ServicesURI, kr.service.ID, RoutesURI)
 	}
 	return RoutesURI
 }
