@@ -12,7 +12,7 @@ type Plugin struct {
 	Enabled   bool        `json:"enabled,omitempty"`
 	Created   int64       `json:"created_at,omitempty"`
 	Config    interface{} `json:"config,omitempty"`
-	Api       interface{} `json:"api_id,omitempty"`
+	API       interface{} `json:"api_id,omitempty"`
 	Service   interface{} `json:"service,omitempty"`
 	Consumer  interface{} `json:"consumer,omitempty"`
 	Route     interface{} `json:"route,omitempty"`

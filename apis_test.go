@@ -57,16 +57,18 @@ func TestApis_Get(t *testing.T) {
 		_apis := NewApis(New(server.URL))
 
 		// try to Get with empty app id
-		_refapp := _apis.Get(apiID)
+		_ref := _apis.Get(apiID)
 
 		// Apis is equal after Get fire up
-		assert.Equal(t, _refapp, _apis)
+		assert.Equal(t, _ref, _apis)
+
+		_raw := _apis.AsRaw()
 
 		// Apis ref must be not empty
-		assert.NotEmpty(t, _apis.api)
+		assert.NotEmpty(t, _raw)
 
 		// Check some values on response, must be equals
-		assert.Equal(t, apiID, _apis.api.ID)
+		assert.Equal(t, apiID, _raw.ID)
 	})
 }
 
@@ -131,8 +133,7 @@ func TestApis_Create(t *testing.T) {
 		_apis := NewApis(New(server.URL))
 
 		// Define some vars
-
-		body := Api{ID: "", Name: "", RequestPath: "", Upstream: "", StripPath: false, PreserveHost: false, Created: 0}
+		body := API{ID: "", Name: "", RequestPath: "", Upstream: "", StripPath: false, PreserveHost: false, Created: 0}
 
 		// fire up Exist
 		_api := _apis.Create(body)
@@ -147,8 +148,7 @@ func TestApis_Create(t *testing.T) {
 		_apis := NewApis(New(server.URL))
 
 		// Define some vars
-
-		body := Api{
+		body := API{
 			Name: "soap-v1", RequestPath: "/api/v1/soap",
 			Upstream:  "http://soap.marathon.l4lb.thisdcos.directory:9000",
 			StripPath: true,
@@ -177,7 +177,7 @@ func TestApis_Update(t *testing.T) {
 
 		// Define some vars
 
-		body := Api{ID: "", Name: "", RequestPath: "", Upstream: "", StripPath: false, PreserveHost: false, Created: 0}
+		body := API{ID: "", Name: "", RequestPath: "", Upstream: "", StripPath: false, PreserveHost: false, Created: 0}
 
 		// fire up Exist
 		_api := _apis.Update(body)
@@ -192,7 +192,7 @@ func TestApis_Update(t *testing.T) {
 		_apis := NewApis(New(server.URL))
 
 		// Define some vars
-		body := Api{
+		body := API{
 			ID:   "8810895d-9f6e-47f1-8f40-2a4324b89f89",
 			Name: "soaper-v1", RequestPath: "/api/v1/soaper",
 			Upstream:  "http://soaper.marathon.l4lb.thisdcos.directory:9000",
@@ -277,7 +277,7 @@ func TestApis_Plugins(t *testing.T) {
 		// Try to create Application
 		_apis := NewApis(New(server.URL))
 
-		// fire up Exist
+		// fire up Plugins
 		_plugins := _apis.Plugins()
 
 		// plugins must be nil
@@ -297,7 +297,7 @@ func TestApis_Plugins(t *testing.T) {
 
 		// plugins must be nil
 		assert.NotNil(t, _plugins)
-		assert.Equal(t, 3, len(_plugins))
+		assert.Equal(t, 7, len(_plugins))
 	})
 }
 
@@ -313,7 +313,7 @@ func TestApis_GetAcl(t *testing.T) {
 		_apis := NewApis(New(server.URL))
 
 		// fire up Exist
-		acls := _apis.GetAcl()
+		acls := _apis.GetACL()
 
 		// plugins must be nil
 		assert.Equal(t, 0, len(acls))
@@ -328,7 +328,7 @@ func TestApis_GetAcl(t *testing.T) {
 		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
 
 		// fire up Exist
-		acls := _apis.Get(apiID).GetAcl()
+		acls := _apis.Get(apiID).GetACL()
 
 		// plugins must be nil
 		assert.NotNil(t, acls)
@@ -342,20 +342,20 @@ func TestApis_SetAcl(t *testing.T) {
 	server := tests.MockServer()
 	defer server.Close()
 
-	t.Run("get empty api if body is empty", func(t *testing.T) {
+	t.Run("SetACL fail if api body is empty", func(t *testing.T) {
 
 		// Try to create Application
 		_apis := NewApis(New(server.URL))
 
 		// fire up Exist
-		err := _apis.SetAcl(nil)
+		err := _apis.SetACL(nil)
 
 		// plugins must be nil
 		assert.NotNil(t, err)
 		assert.Equal(t, "api cannot be empty", err.Error())
 	})
 
-	t.Run("get valid api if id is valid", func(t *testing.T) {
+	t.Run("SetACL fail if groups is nil or empty", func(t *testing.T) {
 
 		// Try to create Application
 		_apis := NewApis(New(server.URL))
@@ -364,14 +364,14 @@ func TestApis_SetAcl(t *testing.T) {
 		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
 
 		// fire up Exist
-		err := _apis.Get(apiID).SetAcl(nil)
+		err := _apis.Get(apiID).SetACL(nil)
 
 		// plugins must be nil
 		assert.NotNil(t, err)
 		assert.Equal(t, "groups cannot be nil nor empty", err.Error())
 	})
 
-	t.Run("get valid api if id is valid", func(t *testing.T) {
+	t.Run("SetACL set the group provided", func(t *testing.T) {
 
 		// Try to create Application
 		_apis := NewApis(New(server.URL))
@@ -381,7 +381,7 @@ func TestApis_SetAcl(t *testing.T) {
 		groups := []string{"testing", "groups"}
 
 		// fire up Exist
-		err := _apis.Get(apiID).SetAcl(groups)
+		err := _apis.Get(apiID).SetACL(groups)
 
 		// plugins must be nil
 		assert.Nil(t, err)
@@ -390,16 +390,271 @@ func TestApis_SetAcl(t *testing.T) {
 
 func TestApis_RevokeAcl(t *testing.T) {
 
+	// We create a Mock Server
+	server := tests.MockServer()
+	defer server.Close()
+
+	t.Run("RevokeACL fail if api body is empty", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// fire up Exist
+		err := _apis.RevokeACL("")
+
+		// plugins must be nil
+		assert.NotNil(t, err)
+		assert.Equal(t, "api cannot be empty", err.Error())
+	})
+
+	t.Run("RevokeACL fail if groups is nil or empty", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).RevokeACL("")
+
+		// plugins must be nil
+		assert.NotNil(t, err)
+		assert.Equal(t, "group cannot be empty", err.Error())
+	})
+
+	t.Run("RevokeACL remove the group provided", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).RevokeACL("test")
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
 }
 
 func TestApis_SetAuthentication(t *testing.T) {
+	// We create a Mock Server
+	server := tests.MockServer()
+	defer server.Close()
 
+	t.Run("SetAuthentication fail if api body is empty", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// fire up Exist
+		err := _apis.SetAuthentication(Basic)
+
+		// plugins must be nil
+		assert.NotNil(t, err)
+		assert.Equal(t, "api cannot be null nor empty", err.Error())
+	})
+
+	t.Run("SetAuthentication fail if auth type is invalid", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).SetAuthentication("")
+
+		// plugins must be nil
+		assert.NotNil(t, err)
+		assert.Equal(t, "unknown authentication type", err.Error())
+	})
+
+	t.Run("SetAuthentication success if auth type is Basic", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).SetAuthentication(Basic)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
+
+	t.Run("SetAuthentication success if auth type is JWT", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).SetAuthentication(JWT)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
+
+	t.Run("SetAuthentication success if auth type is HMAC", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).SetAuthentication(HMAC)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
+
+	t.Run("SetAuthentication success if auth type is KeyAuth", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).SetAuthentication(KeyAuth)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
+
+	t.Run("SetAuthentication success if auth type is OAuth", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).SetAuthentication(OAuth)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
 }
 
 func TestApis_RemoveAuthentication(t *testing.T) {
+	// We create a Mock Server
+	server := tests.MockServer()
+	defer server.Close()
 
-}
+	t.Run("RemoveAuthentication fail if api body is empty", func(t *testing.T) {
 
-func TestApis_AsMap(t *testing.T) {
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
 
+		// fire up Exist
+		err := _apis.RemoveAuthentication(Basic)
+
+		// plugins must be nil
+		assert.NotNil(t, err)
+		assert.Equal(t, "api cannot be null nor empty", err.Error())
+	})
+
+	t.Run("RemoveAuthentication fail if auth type is invalid", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).RemoveAuthentication("")
+
+		// plugins must be nil
+		assert.NotNil(t, err)
+		assert.Equal(t, "unknown authentication type", err.Error())
+	})
+
+	t.Run("RemoveAuthentication success if auth type is Basic", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).RemoveAuthentication(Basic)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
+
+	t.Run("RemoveAuthentication success if auth type is JWT", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).RemoveAuthentication(JWT)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
+
+	t.Run("RemoveAuthentication success if auth type is HMAC", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).RemoveAuthentication(HMAC)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
+
+	t.Run("RemoveAuthentication success if auth type is KeyAuth", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).RemoveAuthentication(KeyAuth)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
+
+	t.Run("RemoveAuthentication success if auth type is OAuth", func(t *testing.T) {
+
+		// Try to create Application
+		_apis := NewApis(New(server.URL))
+
+		// Define some vars
+		apiID := "8810895d-9f6e-47f1-8f40-2a4324b89f89"
+
+		// fire up Exist
+		err := _apis.Get(apiID).RemoveAuthentication(OAuth)
+
+		// plugins must be nil
+		assert.Nil(t, err)
+	})
 }

@@ -174,7 +174,10 @@ func (kr *Routes) Purge() error {
 // Plugins list all plugins of a given route
 func (kr *Routes) Plugins() map[string]Plugin {
 
-	return NewPlugins(kr, kr.kong).AsMap()
+	if len(kr.route.ID) == 0 {
+		return nil
+	}
+	return NewPlugins(kr.route, kr.kong).AsMap()
 }
 
 // AsMap returns as Map all routes defined

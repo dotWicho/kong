@@ -38,7 +38,7 @@ type Client struct {
 	getStatus   bool
 	Auth        string
 	KongVersion int
-	Url         string
+	URL         string
 }
 
 //=== Client generator functions
@@ -77,7 +77,7 @@ func NewFromURL(base *url.URL) *Client {
 
 //=== Client functions definitions
 
-// NewFromURL return a copy of Client changing just a base url
+// New return a copy of Client changing just a base url
 func (k *Client) New(base *url.URL) *Client {
 
 	k.Session = requist.New(base.String())
@@ -85,7 +85,7 @@ func (k *Client) New(base *url.URL) *Client {
 		requist.Logger = Logger
 		k.Info = &ClusterInfo{}
 		k.Status = &ClusterStatus{}
-		k.Url = base.String()
+		k.URL = base.String()
 
 		if base.User.String() != "" {
 			if pass, check := base.User.Password(); check {

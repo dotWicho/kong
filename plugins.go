@@ -12,6 +12,8 @@ type PluginsOperations interface {
 	Create(body Plugin) *Plugins
 	Delete(id string) error
 
+	IDByName(name string) string
+
 	AsMap() map[string]Plugin
 	AsRaw() *Plugin
 
@@ -45,7 +47,7 @@ func NewPlugins(parent interface{}, kong *Client) *Plugins {
 // Get returns a non nil Plugins is exist
 func (p *Plugins) Get(id string) *Plugins {
 
-	if len(id) > 0 {
+	if len(id) > 0 && utilities.IsValidUUID(id) {
 
 		path := utilities.EndsWithSlash(p.path()) + id
 		Logger.Debug("[kong.Plugins.Get] path = %s", path)
@@ -75,7 +77,7 @@ func (p *Plugins) Create(body Plugin) *Plugins {
 // Delete a plugin from a Consumer, Route, Apis or Service
 func (p *Plugins) Delete(id string) error {
 
-	if len(id) > 0 {
+	if len(id) > 0 && utilities.IsValidUUID(id) {
 		path := utilities.EndsWithSlash(p.path()) + id
 		Logger.Debug("[kong.Plugins.Delete] path = %s", path)
 
@@ -86,7 +88,20 @@ func (p *Plugins) Delete(id string) error {
 		p.plugin = &Plugin{}
 		return nil
 	}
-	return errors.New("id cannot be null nor empty")
+	return errors.New("id cannot be empty nor invalid")
+}
+
+// IDByName returns plugin ID based on its Name
+func (p *Plugins) IDByName(name string) string {
+
+	plugins := p.AsMap()
+
+	for _, plugin := range plugins {
+		if plugin.Name == name {
+			return plugin.ID
+		}
+	}
+	return ""
 }
 
 // AsMap returns as Map all plugins defined
@@ -115,7 +130,7 @@ func (p *Plugins) AsMap() map[string]Plugin {
 					Enabled:   _plugin.Enabled,
 					Created:   _plugin.Created,
 					Config:    _plugin.Config,
-					Api:       _plugin.Api,
+					API:       _plugin.API,
 					Service:   _plugin.Service,
 					Consumer:  _plugin.Consumer,
 					Route:     _plugin.Route,
@@ -158,8 +173,8 @@ func (p *Plugins) path() string {
 
 	if p.parent != nil {
 		switch p.parent.(type) {
-		case *Api:
-			return fmt.Sprintf("%s/%s/plugins", ApisURI, p.parent.(*Api).ID)
+		case *API:
+			return fmt.Sprintf("%s/%s/plugins", ApisURI, p.parent.(*API).ID)
 
 		case *Route:
 			return fmt.Sprintf("%s/%s/plugins", RoutesURI, p.parent.(*Route).ID)

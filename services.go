@@ -20,9 +20,9 @@ type ServicesOperations interface {
 
 	Plugins() map[string]Plugin
 
-	GetAcl() []string
-	SetAcl(groups []string) error
-	RevokeAcl(group string) error
+	GetACL() []string
+	SetACL(groups []string) error
+	RevokeACL(group string) error
 	SetAuthentication(auth Authentication) error
 	RemoveAuthentication(auth Authentication) error
 
@@ -46,7 +46,7 @@ type Service struct {
 	CreatedAt         int                `json:"created_at,omitempty"`
 	UpdatedAt         int                `json:"updated_at,omitempty"`
 	Retries           int                `json:"retries,omitempty"`
-	Url               string             `json:"url,omitempty"`
+	URL               string             `json:"url,omitempty"`
 	Protocol          string             `json:"protocol,omitempty"`
 	Host              string             `json:"host,omitempty"`
 	Port              int                `json:"port,omitempty"`
@@ -70,7 +70,7 @@ type ClientCertificate struct {
 	ID string `json:"id,omitempty"`
 }
 
-// NewApis returns Services implementation
+// NewServices returns a new Services client
 func NewServices(kong *Client) *Services {
 
 	if kong != nil {
@@ -166,7 +166,7 @@ func (ks *Services) Delete(id string) error {
 		}
 		return nil
 	}
-	return errors.New(fmt.Sprintf("service %s dont exist", id))
+	return fmt.Errorf("service %s dont exist", id)
 }
 
 // Routes returns routes for a given service
@@ -201,11 +201,14 @@ func (ks *Services) Purge() error {
 // Plugins returns plugins for a given service
 func (ks *Services) Plugins() map[string]Plugin {
 
-	return NewPlugins(ks, ks.kong).AsMap()
+	if len(ks.service.ID) == 0 {
+		return nil
+	}
+	return NewPlugins(ks.service, ks.kong).AsMap()
 }
 
-// GetAcl returns context of a whitelist
-func (ks *Services) GetAcl() []string {
+// GetACL returns context of a whitelist
+func (ks *Services) GetACL() []string {
 
 	if len(ks.service.ID) > 0 {
 		if _plugins := ks.Plugins(); _plugins != nil {
@@ -225,8 +228,8 @@ func (ks *Services) GetAcl() []string {
 	return nil
 }
 
-// SetAcl creates an entry on services plugins of type acl
-func (ks *Services) SetAcl(groups []string) error {
+// SetACL creates an entry on services plugins of type acl
+func (ks *Services) SetACL(groups []string) error {
 
 	config := ACLConfig{
 		HideGroupsHeader: false,
@@ -239,13 +242,13 @@ func (ks *Services) SetAcl(groups []string) error {
 	return nil
 }
 
-// RevokeAcl delete an entry on services plugins of type acl
-func (ks *Services) RevokeAcl(group string) error {
+// RevokeACL delete an entry on services plugins of type acl
+func (ks *Services) RevokeACL(group string) error {
 
 	if len(ks.service.ID) > 0 {
 		erase := -1
 
-		groups := ks.GetAcl()
+		groups := ks.GetACL()
 		for index, value := range groups {
 			if value == group {
 				erase = index
@@ -258,7 +261,7 @@ func (ks *Services) RevokeAcl(group string) error {
 
 			_ = NewPlugins(ks, ks.kong).Delete("acl")
 
-			return ks.SetAcl(groups)
+			return ks.SetACL(groups)
 		}
 		return fmt.Errorf("%s is not on the whitelist", group)
 	}

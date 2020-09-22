@@ -210,7 +210,7 @@ func TestClient_SetBasicAuth(t *testing.T) {
 	})
 }
 
-func TestNew(t *testing.T) {
+func Test_CheckStatus(t *testing.T) {
 
 	// We create a Mock Server
 	server := tests.MockServer()
@@ -224,11 +224,16 @@ func TestNew(t *testing.T) {
 
 	//
 	mapStatus, _ := _client.CheckStatus()
-	fmt.Printf("%+v", mapStatus["Accepted"])
-	fmt.Printf("%+v", mapStatus["Active"])
-	fmt.Printf("%+v", mapStatus["Handled"])
-	fmt.Printf("%+v", mapStatus["Reading"])
-	fmt.Printf("%+v", mapStatus["Requests"])
-	fmt.Printf("%+v", mapStatus["Waiting"])
-	fmt.Printf("%+v", mapStatus["Writing"])
+
+	// Prepare result
+	results := fmt.Sprint(mapStatus["Accepted"]) + "," +
+		fmt.Sprint(mapStatus["Active"]) + "," +
+		fmt.Sprint(mapStatus["Handled"]) + "," +
+		fmt.Sprint(mapStatus["Reading"]) + "," +
+		fmt.Sprint(mapStatus["Waiting"]) + "," +
+		fmt.Sprint(mapStatus["Writing"]) + "," +
+		fmt.Sprint(mapStatus["Requests"])
+
+	// result must be equals to test.ServerStatusStr
+	assert.Equal(t, tests.ServerStatusStr, results)
 }

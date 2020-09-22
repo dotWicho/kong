@@ -3,38 +3,39 @@ package kong
 import (
 	"errors"
 	"fmt"
+	"github.com/dotWicho/utilities"
 )
 
 // ApisOperations interface holds Kong Apis Methods
 type ApisOperations interface {
 	Get(id string) *Apis
 	Exist(id string) bool
-	Create(body Api) *Apis
-	Update(body Api) *Apis
+	Create(body API) *Apis
+	Update(body API) *Apis
 	Delete(id string) error
 	Purge() error
 
 	Plugins() map[string]Plugin
 
-	GetAcl() []string
-	SetAcl(groups []string) error
-	RevokeAcl(group string) error
+	GetACL() []string
+	SetACL(groups []string) error
+	RevokeACL(group string) error
 	SetAuthentication(auth Authentication) error
 	RemoveAuthentication(auth Authentication) error
 
-	AsMap() map[string]Api
-	AsRaw() *Api
+	AsMap() map[string]API
+	AsRaw() *API
 }
 
 // Apis implements ApisOperations interface{}
 type Apis struct {
 	kong *Client
-	api  *Api
+	api  *API
 	fail *FailureMessage
 }
 
-// Kong Apis representation
-type Api struct {
+// API representation
+type API struct {
 	ID           string `json:"id,omitempty"`
 	Name         string `json:"name,omitempty"`
 	RequestPath  string `json:"request_path,omitempty"`
@@ -44,9 +45,9 @@ type Api struct {
 	Created      int64  `json:"created_at,omitempty"`
 }
 
-// APIList holds a list of Kong Api
-type ApiList struct {
-	Data  []Api  `json:"data,omitempty"`
+// APIList holds a list of Kong API
+type APIList struct {
+	Data  []API  `json:"data,omitempty"`
 	Next  string `json:"next,omitempty"`
 	Total int    `json:"total,omitempty"`
 }
@@ -57,7 +58,7 @@ func NewApis(kong *Client) *Apis {
 	if kong != nil && kong.Session != nil {
 		return &Apis{
 			kong: kong,
-			api:  &Api{},
+			api:  &API{},
 			fail: &FailureMessage{},
 		}
 	}
@@ -70,14 +71,14 @@ func NewApis(kong *Client) *Apis {
  *
  **/
 
-// Get returns a non nil Api is exist
+// Get returns a non nil API is exist
 func (ka *Apis) Get(id string) *Apis {
 
 	if len(id) > 0 {
 		path := fmt.Sprintf("%s/%s", ApisURI, id)
 
 		if _, err := ka.kong.Session.BodyAsJSON(nil).Get(path, ka.api, ka.fail); err != nil {
-			ka.api = &Api{}
+			ka.api = &API{}
 		}
 	}
 	return ka
@@ -103,17 +104,17 @@ func (ka *Apis) Exist(id string) bool {
 }
 
 // Create create an api
-func (ka *Apis) Create(body Api) *Apis {
+func (ka *Apis) Create(body API) *Apis {
 
 	body.ID = ""
 	if _, err := ka.kong.Session.BodyAsJSON(body).Post(ApisURI, ka.api, ka.fail); err != nil {
-		ka.api = &Api{}
+		ka.api = &API{}
 	}
 	return ka
 }
 
 // Update update a given api
-func (ka *Apis) Update(body Api) *Apis {
+func (ka *Apis) Update(body API) *Apis {
 
 	if ka.Exist(body.ID) {
 
@@ -121,7 +122,7 @@ func (ka *Apis) Update(body Api) *Apis {
 		body.ID = ""
 
 		if _, err := ka.kong.Session.BodyAsJSON(body).Patch(path, ka.api, ka.fail); err != nil {
-			ka.api = &Api{}
+			ka.api = &API{}
 		}
 	}
 	return ka
@@ -137,7 +138,7 @@ func (ka *Apis) Delete(id string) error {
 		if _, err := ka.kong.Session.BodyAsJSON(nil).Delete(path, ka.api, ka.fail); err != nil {
 			return err
 		}
-		ka.api = &Api{}
+		ka.api = &API{}
 		return nil
 	}
 	return fmt.Errorf("api %s dont exist", id)
@@ -159,11 +160,14 @@ func (ka *Apis) Purge() error {
 // Plugins returns plugins for a given api
 func (ka *Apis) Plugins() map[string]Plugin {
 
-	return NewPlugins(ka, ka.kong).AsMap()
+	if len(ka.api.ID) == 0 {
+		return nil
+	}
+	return NewPlugins(ka.api, ka.kong).AsMap()
 }
 
-// GetAcl returns context of a whitelist
-func (ka *Apis) GetAcl() []string {
+// GetACL returns context of a whitelist
+func (ka *Apis) GetACL() []string {
 
 	if len(ka.api.ID) > 0 {
 		if _plugins := ka.Plugins(); _plugins != nil {
@@ -183,8 +187,8 @@ func (ka *Apis) GetAcl() []string {
 	return nil
 }
 
-// SetAcl creates an entry on apis plugins of type acl
-func (ka *Apis) SetAcl(groups []string) error {
+// SetACL creates an entry on apis plugins of type acl
+func (ka *Apis) SetACL(groups []string) error {
 
 	if len(ka.api.ID) > 0 {
 		if groups != nil && len(groups) > 0 {
@@ -193,7 +197,7 @@ func (ka *Apis) SetAcl(groups []string) error {
 				Blacklist:        nil,
 				Whitelist:        groups,
 			}
-			if NewPlugins(ka, ka.kong).Create(Plugin{Name: "acl", Enabled: true, Config: config}) == nil {
+			if NewPlugins(ka.api, ka.kong).Create(Plugin{Name: "acl", Enabled: true, Config: config}) == nil {
 				return fmt.Errorf("acl failed to assing")
 			}
 			return nil
@@ -203,28 +207,32 @@ func (ka *Apis) SetAcl(groups []string) error {
 	return errors.New("api cannot be empty")
 }
 
-// RevokeAcl delete an entry on apis plugins of type acl
-func (ka *Apis) RevokeAcl(group string) error {
+// RevokeACL delete an entry on apis plugins of type acl
+func (ka *Apis) RevokeACL(group string) error {
 
 	if len(ka.api.ID) > 0 {
-		erase := -1
+		if len(group) > 0 {
+			erase := -1
 
-		groups := ka.GetAcl()
-		for index, value := range groups {
-			if value == group {
-				erase = index
+			groups := ka.GetACL()
+			for index, value := range groups {
+				if value == group {
+					erase = index
+				}
 			}
-		}
-		if erase > -1 {
-			groups[erase] = groups[len(groups)-1]
-			groups[len(groups)-1] = ""
-			groups = groups[:len(groups)-1]
+			if erase > -1 {
+				groups[erase] = groups[len(groups)-1]
+				groups[len(groups)-1] = ""
+				groups = groups[:len(groups)-1]
 
-			_ = NewPlugins(ka, ka.kong).Delete("acl")
+				plugins := NewPlugins(ka.api, ka.kong)
+				_ = plugins.Delete(plugins.IDByName("acl"))
 
-			return ka.SetAcl(groups)
+				return ka.SetACL(groups)
+			}
+			return fmt.Errorf("%s is not on the whitelist", group)
 		}
-		return fmt.Errorf("%s is not on the whitelist", group)
+		return fmt.Errorf("group cannot be empty")
 	}
 	return errors.New("api cannot be empty")
 }
@@ -255,7 +263,7 @@ func (ka *Apis) SetAuthentication(auth Authentication) error {
 			return errors.New("unknown authentication type")
 		}
 
-		if NewPlugins(ka, ka.kong).Create(Plugin{Name: string(auth), Enabled: true, Config: config}) != nil {
+		if NewPlugins(ka.api, ka.kong).Create(Plugin{Name: string(auth), Enabled: true, Config: config}) != nil {
 			return nil
 		}
 		return errors.New("api cannot be null nor empty")
@@ -266,30 +274,28 @@ func (ka *Apis) SetAuthentication(auth Authentication) error {
 // RemoveAuthentication delete an entry on apis plugins with type provided
 func (ka *Apis) RemoveAuthentication(auth Authentication) error {
 
-	if len(ka.api.ID) > 0 {
+	if len(ka.api.ID) > 0 && utilities.IsValidUUID(ka.api.ID) {
+
+		plugins := NewPlugins(ka.api, ka.kong)
 		switch auth {
-		case Basic:
-		case JWT:
-		case HMAC:
-		case KeyAuth:
-		case OAuth:
+		case Basic, JWT, HMAC, KeyAuth, OAuth:
+			return plugins.Delete(plugins.IDByName(string(auth)))
+
 		default:
 			return errors.New("unknown authentication type")
 		}
-
-		return NewPlugins(ka, ka.kong).Delete(string(auth))
 	}
 	return errors.New("api cannot be null nor empty")
 }
 
 // AsMap returns all Apis defined as a map
-func (ka *Apis) AsMap() map[string]Api {
+func (ka *Apis) AsMap() map[string]API {
 
-	apisMap := make(map[string]Api)
+	apisMap := make(map[string]API)
 
 	path := fmt.Sprintf("%s", ApisURI)
 
-	list := &ApiList{}
+	list := &APIList{}
 
 	ka.kong.Session.AddQueryParam("size", RequestSize)
 
@@ -300,7 +306,7 @@ func (ka *Apis) AsMap() map[string]Api {
 
 		if len(list.Data) > 0 && len(ka.fail.Message) == 0 {
 			for _, _api := range list.Data {
-				apiDetail := Api{ID: _api.ID, Name: _api.Name, RequestPath: _api.RequestPath, Upstream: _api.Upstream,
+				apiDetail := API{ID: _api.ID, Name: _api.Name, RequestPath: _api.RequestPath, Upstream: _api.Upstream,
 					PreserveHost: _api.PreserveHost, Created: _api.Created, StripPath: _api.StripPath}
 				apisMap[_api.ID] = apiDetail
 			}
@@ -310,13 +316,13 @@ func (ka *Apis) AsMap() map[string]Api {
 		} else {
 			break
 		}
-		list = &ApiList{}
+		list = &APIList{}
 	}
 	return apisMap
 }
 
-// AsRaw returns the current Api
-func (ka *Apis) AsRaw() *Api {
+// AsRaw returns the current API
+func (ka *Apis) AsRaw() *API {
 
 	return ka.api
 }

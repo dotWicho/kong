@@ -16,6 +16,14 @@ type Api struct {
 	Created      int64  `json:"created_at,omitempty"`
 }
 
+type Consumer struct {
+	ID        string   `json:"id,omitempty"`
+	Username  string   `json:"username,omitempty"`
+	CreatedAt int64    `json:"created_at,omitempty"`
+	CustomID  string   `json:"custom_id,omitempty"`
+	Tags      []string `json:"tags,omitempty"`
+}
+
 const info = `{
 	"configuration": {
 		"admin_acc_logs": "/usr/local/kong/logs/admin_access.log",
@@ -238,16 +246,18 @@ const info = `{
 	"version": "2.0.4"
 }`
 
+const ServerStatusStr = "10065,13,10065,0,9,4,14007"
+
 const status = `{
  "database": { "reachable": true },
  "server": {
- "connections_accepted": 10065,
- "connections_active": 13,
- "connections_handled": 10065,
- "connections_reading": 0,
- "connections_waiting": 9,
- "connections_writing": 4,
- "total_requests": 14007
+   "connections_accepted": 10065, 
+   "connections_active": 13,
+   "connections_handled": 10065,
+   "connections_reading": 0,
+   "connections_waiting": 9,
+   "connections_writing": 4,
+   "total_requests": 14007
  }}`
 
 const apiList = `{
@@ -311,9 +321,29 @@ const apiDemo3 = `{
  "name": "rest-v2"
 }`
 
-const consumersList = ``
+const consumersList = `{
+"data":[
+ { "custom_id": null, "created_at": 1588706213, "id": "17cd2921-ce94-4b60-950b-10c25169095b", "tags": null, "username": "userpw1" },
+ { "custom_id": null, "created_at": 1588706141, "id": "184c1edb-b397-4679-88ba-4cecc6b42231", "tags": null, "username": "userpw2" },
+ { "custom_id": null, "created_at": 1588706165, "id": "18599135-6a74-430e-816c-114cc5fc52ef", "tags": null, "username": "userpw3" },
+ { "custom_id": null, "created_at": 1588706169, "id": "18762fab-1cc0-47eb-a4f6-250ec873d0af", "tags": null, "username": "userpw4" },
+ { "custom_id": null, "created_at": 1588706185, "id": "189af53c-8361-4f3a-be76-cfd71b60d28f", "tags": null, "username": "userpw5" }
+]}`
 
-const consumerDemo = ``
+const consumerDemo = `{
+  "custom_id": "custom0", "created_at": 1588706213, "id": "17cd2921-ce94-4b60-950b-10c25169095b", "tags": ["user", "primary"], "username": "userpw1"
+}`
+
+const consumerDemoKeyAuth = `{
+ "next":null,
+ "data":[{
+  "created_at":1585103822,
+  "consumer":{"id":"17cd2921-ce94-4b60-950b-10c25169095b"},
+  "id":"1438504c-5e2d-4d9a-9fd8-a781f5abf9a5",
+  "tags":null,
+  "ttl":null,
+  "key":"ada1b81be39048d5a610c12f03bcac8a"
+}]}`
 
 const servicesList = ``
 
@@ -344,6 +374,34 @@ const apiPluginsList = `{
    "created_at": 1579799944000,
    "enabled": true,
    "name": "key-auth",
+   "config": { "key_names": [ "apikey" ], "hide_credentials": false }
+ },
+ { "api_id": "080c553b-031b-486f-9a81-2d1663507bb6",
+   "id": "3eb79dd2-f025-4335-bbd3-5d023bc33219",
+   "created_at": 1579799944000,
+   "enabled": true,
+   "name": "basic-auth",
+   "config": { "key_names": [ "apikey" ], "hide_credentials": false }
+ },
+ { "api_id": "080c553b-031b-486f-9a81-2d1663507bb6",
+   "id": "a18b659d-ec93-41d4-a9de-ea787975b90d",
+   "created_at": 1579799944000,
+   "enabled": true,
+   "name": "jwt",
+   "config": { "key_names": [ "apikey" ], "hide_credentials": false }
+ },
+ { "api_id": "080c553b-031b-486f-9a81-2d1663507bb6",
+   "id": "e84a5501-97e0-4ac5-8da6-3ff2e327caf5",
+   "created_at": 1579799944000,
+   "enabled": true,
+   "name": "hmac-auth",
+   "config": { "key_names": [ "apikey" ], "hide_credentials": false }
+ },
+ { "api_id": "080c553b-031b-486f-9a81-2d1663507bb6",
+   "id": "82a46a85-bd99-4c12-9657-677ac27b5b95",
+   "created_at": 1579799944000,
+   "enabled": true,
+   "name": "oauth2",
    "config": { "key_names": [ "apikey" ], "hide_credentials": false }
  }],
  "total": 3
@@ -419,7 +477,7 @@ func MockServer() *httptest.Server {
 				}
 				if resp, err := json.Marshal(body); err == nil {
 					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte(resp))
+					_, _ = w.Write(resp)
 				}
 			}
 
@@ -443,6 +501,25 @@ func MockServer() *httptest.Server {
 				_, _ = w.Write([]byte(apiDemo3))
 			}
 
+		case "/apis/8810895d-9f6e-47f1-8f40-2a4324b89f89/plugins/080c553b-031b-486f-9a81-2d1663507bb6":
+			switch r.Method {
+			case http.MethodDelete:
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(apiPluginDemo))
+			}
+
+		case "/apis/8810895d-9f6e-47f1-8f40-2a4324b89f89/plugins/45e6778d-fcbc-4932-af1d-7741397c1f1a",
+			"/apis/8810895d-9f6e-47f1-8f40-2a4324b89f89/plugins/d35f758f-91da-4781-a522-87056646ad59",
+			"/apis/8810895d-9f6e-47f1-8f40-2a4324b89f89/plugins/3eb79dd2-f025-4335-bbd3-5d023bc33219",
+			"/apis/8810895d-9f6e-47f1-8f40-2a4324b89f89/plugins/a18b659d-ec93-41d4-a9de-ea787975b90d",
+			"/apis/8810895d-9f6e-47f1-8f40-2a4324b89f89/plugins/e84a5501-97e0-4ac5-8da6-3ff2e327caf5",
+			"/apis/8810895d-9f6e-47f1-8f40-2a4324b89f89/plugins/82a46a85-bd99-4c12-9657-677ac27b5b95":
+			switch r.Method {
+			case http.MethodDelete:
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(apiPluginDemo))
+			}
+
 		case "/apis/8810895d-9f6e-47f1-8f40-2a4324b89f89/plugins":
 			switch r.Method {
 			case http.MethodGet:
@@ -455,18 +532,62 @@ func MockServer() *httptest.Server {
 			}
 
 		case "/consumers":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(consumersList))
+			switch r.Method {
+			case http.MethodGet:
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(consumersList))
 
-		case "/consumers/:id":
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(consumerDemo))
+			case http.MethodPost:
+				defer r.Body.Close()
+				body := &Consumer{}
 
-		case "/consumers/:id/plugins":
+				// Simulate an error if body.Username is empty
+				if err := json.NewDecoder(r.Body).Decode(body); err != nil || len(body.Username) == 0 {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(consumerDemo))
+			}
+
+		case "/consumers/17cd2921-ce94-4b60-950b-10c25169095b",
+			"/consumers/184c1edb-b397-4679-88ba-4cecc6b42231",
+			"/consumers/18599135-6a74-430e-816c-114cc5fc52ef",
+			"/consumers/18762fab-1cc0-47eb-a4f6-250ec873d0af",
+			"/consumers/189af53c-8361-4f3a-be76-cfd71b60d28f":
+			switch r.Method {
+			case http.MethodGet:
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(consumerDemo))
+
+			case http.MethodPatch:
+				defer r.Body.Close()
+				body := &Consumer{}
+
+				// Simulate an update
+				if err := json.NewDecoder(r.Body).Decode(body); err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				if resp, err := json.Marshal(body); err == nil {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write(resp)
+				}
+			case http.MethodDelete:
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(consumerDemo))
+			}
+
+		case "/consumers/17cd2921-ce94-4b60-950b-10c25169095b/key-auth":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(consumerDemoKeyAuth))
+
+		case "/consumers/17cd2921-ce94-4b60-950b-10c25169095b/plugins":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(apiPluginsList))
 
-		case "/consumers/:id/plugins/:id":
+		case "/consumers/17cd2921-ce94-4b60-950b-10c25169095b/plugins/45e6778d-fcbc-4932-af1d-7741397c1f1a":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(apiPluginDemo))
 

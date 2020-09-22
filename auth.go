@@ -8,17 +8,19 @@ type KeyAuthData struct {
 	ID         string `json:"id,omitempty"`
 }
 
-// BasicKeyAuth holds holds responses when getting all basic auths for a consumer
+// BasicKeyAuth holds responses when getting all basic auths for a consumer
 type BasicKeyAuth struct {
 	Data  []KeyAuthData `json:"data,omitempty"`
 	Total int           `json:"total,omitempty"`
 }
 
+// BasicAuthentication represents config for simple username:password authentication
 type BasicAuthentication struct {
 	HideCredentials bool `json:"hide_credentials,omitempty"`
 	Anonymous       bool `json:"anonymous,omitempty"`
 }
 
+// JWTAuthentication represents config for JWT authentication
 type JWTAuthentication struct {
 	URIParamNames     []string `json:"uri_param_names,omitempty"`
 	CookieNames       []string `json:"cookie_names,omitempty"`
@@ -29,6 +31,7 @@ type JWTAuthentication struct {
 	MaximumExpiration int      `json:"maximum_expiration,omitempty"`
 }
 
+// HMACAuthentication represents config for HMAC authentication
 type HMACAuthentication struct {
 	ClockSkew           int  `json:"clock_skew,omitempty"`
 	HideCredentials     bool `json:"hide_credentials,omitempty"`
@@ -38,6 +41,7 @@ type HMACAuthentication struct {
 	Algorithms          bool `json:"algorithms,omitempty"`
 }
 
+// KeyAuthentication represents config for KeyAuth (apikey) authentication
 type KeyAuthentication struct {
 	KeyNames        []string `json:"key_names,omitempty"`
 	KeyInBody       bool     `json:"key_in_body,omitempty"`
@@ -46,6 +50,7 @@ type KeyAuthentication struct {
 	HideCredentials bool     `json:"hide_credentials,omitempty"`
 }
 
+// OAuth2Authentication represents config for OAuth (OAuth2) authentication
 type OAuth2Authentication struct {
 	Scopes                  []string `json:"scopes,omitempty"`
 	MandatoryScope          bool     `json:"mandatory_scope,omitempty"`

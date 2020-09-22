@@ -3,6 +3,7 @@ package kong
 import (
 	"errors"
 	"fmt"
+	"github.com/dotWicho/utilities"
 )
 
 // ConsumersOperations interface holds Kong Consumers Methods
@@ -20,8 +21,11 @@ type ConsumersOperations interface {
 	DeleteKeyAuth(key string) error
 	ByKey(key string) *Consumer
 
-	SetAcl(group string) error
-	DeleteAcl(group string) error
+	Plugins() map[string]Plugin
+
+	GetACL() []string
+	SetACL(groups []string) error
+	RevokeACL(group string) error
 
 	AsMap() map[string]Consumer
 	AsRaw() *Consumer
@@ -34,7 +38,7 @@ type Consumers struct {
 	fail     *FailureMessage
 }
 
-// ConsumersCreateBody holds request body for POST/PUT/PATCH schema://server:port/consumers/
+// Consumer holds request body for POST/PUT/PATCH schema://server:port/consumers/
 type Consumer struct {
 	ID        string   `json:"id,omitempty"`
 	Username  string   `json:"username,omitempty"`
@@ -43,7 +47,7 @@ type Consumer struct {
 	Tags      []string `json:"tags,omitempty"`
 }
 
-// ConsumersListResponse holds responses when getting all consumers ( GET schema://server:port/consumers/ )
+// ConsumersList holds responses when getting all consumers ( GET schema://server:port/consumers/ )
 type ConsumersList struct {
 	Data  []Consumer `json:"data,omitempty"`
 	Next  string     `json:"next,omitempty"`
@@ -82,7 +86,7 @@ func (kc *Consumers) Get(id string) *Consumers {
 	return kc
 }
 
-// ExistConsumer checks if given consumer exist
+// Exist checks if given consumer exist
 func (kc *Consumers) Exist(id string) bool {
 
 	if len(id) == 0 {
@@ -99,8 +103,10 @@ func (kc *Consumers) Exist(id string) bool {
 	return len(kc.consumer.ID) > 0
 }
 
-// CreateConsumer create a consumer
+// Create create a consumer
 func (kc *Consumers) Create(body Consumer) *Consumers {
+
+	body.ID = ""
 
 	if _, err := kc.kong.Session.BodyAsJSON(body).Post(ConsumersURI, kc.consumer, kc.fail); err != nil {
 		kc.consumer = &Consumer{}
@@ -109,12 +115,12 @@ func (kc *Consumers) Create(body Consumer) *Consumers {
 	return kc
 }
 
-// UpdateConsumer update a given consumer
+// Update update a given consumer
 func (kc *Consumers) Update(body Consumer) *Consumers {
 
-	if len(body.Username) > 0 {
+	if utilities.IsValidUUID(kc.consumer.ID) {
 
-		path := fmt.Sprintf("%s/%s", ConsumersURI, body.Username)
+		path := fmt.Sprintf("%s/%s", ConsumersURI, kc.consumer.ID)
 
 		body.ID = ""
 		body.CreatedAt = 0
@@ -126,13 +132,13 @@ func (kc *Consumers) Update(body Consumer) *Consumers {
 	return kc
 }
 
-// DeleteConsumer deletes a given consumer
+// Delete deletes a given consumer
 func (kc *Consumers) Delete(id string) error {
 
-	if id != "" {
+	if utilities.IsValidUUID(id) {
 		path := fmt.Sprintf("%s/%s", ConsumersURI, id)
 
-		if _, err := kc.kong.Session.BodyAsJSON(nil).Patch(path, kc.consumer, kc.fail); err != nil {
+		if _, err := kc.kong.Session.BodyAsJSON(nil).Delete(path, kc.consumer, kc.fail); err != nil {
 			return err
 		}
 		return nil
@@ -140,7 +146,7 @@ func (kc *Consumers) Delete(id string) error {
 	return errors.New("consumer cannot be null nor empty")
 }
 
-// PurgeConsumers flush all consumers from Kong server
+// Purge flush all consumers from Kong server
 func (kc *Consumers) Purge() error {
 
 	if _consumers := kc.AsMap(); _consumers != nil {
@@ -153,12 +159,12 @@ func (kc *Consumers) Purge() error {
 	return nil
 }
 
-// GetConsumerKeyAuth return all basic auth of a consumer
+// GetKeyAuth return all basic auth of a consumer
 func (kc *Consumers) GetKeyAuth() map[string]KeyAuthData {
 
 	keysMap := make(map[string]KeyAuthData)
 
-	if len(kc.consumer.ID) > 0 {
+	if len(kc.consumer.ID) > 0 && utilities.IsValidUUID(kc.consumer.ID) {
 
 		path := fmt.Sprintf("%s/%s/%s", ConsumersURI, kc.consumer.ID, KeyAuthURI)
 
@@ -183,7 +189,7 @@ func (kc *Consumers) GetKeyAuth() map[string]KeyAuthData {
 	return keysMap
 }
 
-// SetConsumerKeyAuth set a key for a consumer
+// SetKeyAuth set a key for a consumer
 func (kc *Consumers) SetKeyAuth(key string) error {
 
 	if len(kc.consumer.ID) > 0 && key != "" {
@@ -199,7 +205,7 @@ func (kc *Consumers) SetKeyAuth(key string) error {
 	return errors.New("consumer id/key cannot be null nor empty")
 }
 
-// NewConsumerKeyAuth create a new basic auth key for a consumer
+// CreateKeyAuth create a new basic auth key for a consumer
 func (kc *Consumers) CreateKeyAuth() error {
 
 	if len(kc.consumer.ID) > 0 {
@@ -215,7 +221,7 @@ func (kc *Consumers) CreateKeyAuth() error {
 	return errors.New("consumer id cannot be null nor empty")
 }
 
-// DeleteConsumerKeyAuth remove basic auth key for a consumer
+// DeleteKeyAuth remove basic auth key for a consumer
 func (kc *Consumers) DeleteKeyAuth(key string) error {
 
 	if len(kc.consumer.ID) > 0 && key != "" {
@@ -249,11 +255,11 @@ func (kc *Consumers) ByKey(key string) *Consumer {
 // Plugins returns plugins for a given service
 func (kc *Consumers) Plugins() map[string]Plugin {
 
-	return NewPlugins(kc, kc.kong).AsMap()
+	return NewPlugins(kc.consumer, kc.kong).AsMap()
 }
 
-// GetAcl returns context of a whitelist
-func (kc *Consumers) GetAcl() []string {
+// GetACL returns context of a whitelist
+func (kc *Consumers) GetACL() []string {
 
 	if len(kc.consumer.ID) > 0 {
 		//
@@ -266,8 +272,8 @@ func (kc *Consumers) GetAcl() []string {
 	return nil
 }
 
-// SetAcl assign a group to a consumer
-func (kc *Consumers) SetAcl(groups []string) error {
+// SetACL assign a group to a consumer
+func (kc *Consumers) SetACL(groups []string) error {
 
 	config := ACLConfig{
 		HideGroupsHeader: false,
@@ -280,13 +286,13 @@ func (kc *Consumers) SetAcl(groups []string) error {
 	return nil
 }
 
-// RevokeAcl removes a group from a consumer
-func (kc *Consumers) RevokeAcl(group string) error {
+// RevokeACL removes a group from a consumer
+func (kc *Consumers) RevokeACL(group string) error {
 
 	if len(kc.consumer.ID) > 0 {
 		erase := -1
 
-		groups := kc.GetAcl()
+		groups := kc.GetACL()
 		for index, value := range groups {
 			if value == group {
 				erase = index
@@ -299,7 +305,7 @@ func (kc *Consumers) RevokeAcl(group string) error {
 
 			_ = NewPlugins(kc, kc.kong).Delete("acl")
 
-			return kc.SetAcl(groups)
+			return kc.SetACL(groups)
 		}
 		return fmt.Errorf("%s is not on the whitelist", group)
 	}
@@ -311,7 +317,7 @@ func (kc *Consumers) AsMap() map[string]Consumer {
 
 	consumersMap := make(map[string]Consumer)
 
-	path := fmt.Sprintf("%s/", ConsumersURI)
+	path := fmt.Sprintf("%s", ConsumersURI)
 
 	list := &ConsumersList{}
 
@@ -344,7 +350,7 @@ func (kc *Consumers) AsMap() map[string]Consumer {
 	return consumersMap
 }
 
-// AsMap returns all defined Consumers in a map
+// AsRaw returns current Consumer
 func (kc *Consumers) AsRaw() *Consumer {
 
 	return kc.consumer
