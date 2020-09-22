@@ -39,7 +39,7 @@ module myclient
 go 1.13
 
 require (
-	github.com/dotWicho/kong v1.2.5
+	github.com/dotWicho/kong v1.2.9
 )
 ```
 
