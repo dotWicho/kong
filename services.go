@@ -29,6 +29,8 @@ type ServicesOperations interface {
 	AsMap() map[string]Service
 	AsRaw() *Service
 
+	Error() error
+
 	path() string
 }
 

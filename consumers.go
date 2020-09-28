@@ -29,6 +29,8 @@ type ConsumersOperations interface {
 
 	AsMap() map[string]Consumer
 	AsRaw() *Consumer
+
+	Error() error
 }
 
 // Consumers implements ConsumersOperations interface{}
@@ -354,4 +356,15 @@ func (kc *Consumers) AsMap() map[string]Consumer {
 func (kc *Consumers) AsRaw() *Consumer {
 
 	return kc.consumer
+}
+
+// Error returns the current error if any
+func (kc *Consumers) Error() error {
+
+	message := kc.fail.Message
+	if len(message) > 0 {
+		kc.fail.Message = ""
+		return fmt.Errorf("%s", message)
+	}
+	return nil
 }

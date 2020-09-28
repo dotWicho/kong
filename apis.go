@@ -25,6 +25,8 @@ type ApisOperations interface {
 
 	AsMap() map[string]API
 	AsRaw() *API
+
+	Error() error
 }
 
 // Apis implements ApisOperations interface{}
@@ -325,4 +327,15 @@ func (ka *Apis) AsMap() map[string]API {
 func (ka *Apis) AsRaw() *API {
 
 	return ka.api
+}
+
+// Error returns the current error if any
+func (ka *Apis) Error() error {
+
+	message := ka.fail.Message
+	if len(message) > 0 {
+		ka.fail.Message = ""
+		return fmt.Errorf("%s", message)
+	}
+	return nil
 }

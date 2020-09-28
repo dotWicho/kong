@@ -18,6 +18,8 @@ type RoutesOperations interface {
 	AsMap() map[string]Route
 	AsRaw() *Route
 
+	Error() error
+
 	path() string
 }
 
