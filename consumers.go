@@ -326,6 +326,7 @@ func (kc *Consumers) AsMap() map[string]Consumer {
 	kc.kong.Session.AddQueryParam("size", RequestSize)
 
 	for {
+		kc.fail.Message = ""
 		if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, list, kc.fail); err != nil {
 			return nil
 		}
@@ -342,12 +343,13 @@ func (kc *Consumers) AsMap() map[string]Consumer {
 				consumersMap[_consumers.ID] = consumerDetail
 			}
 		}
-		if len(list.Next) > 0 {
+		if len(list.Next) > 0 && path != list.Next {
 			path = list.Next
 		} else {
 			break
 		}
-		list = &ConsumersList{}
+		list.Data = []Consumer{}
+		list.Next = ""
 	}
 	return consumersMap
 }

@@ -302,6 +302,7 @@ func (ka *Apis) AsMap() map[string]API {
 	ka.kong.Session.AddQueryParam("size", RequestSize)
 
 	for {
+		ka.fail.Message = ""
 		if _, err := ka.kong.Session.BodyAsJSON(nil).Get(path, list, ka.fail); err != nil {
 			return nil
 		}
@@ -313,12 +314,13 @@ func (ka *Apis) AsMap() map[string]API {
 				apisMap[_api.ID] = apiDetail
 			}
 		}
-		if len(list.Next) > 0 {
+		if len(list.Next) > 0 && path != list.Next {
 			path = list.Next
 		} else {
 			break
 		}
-		list = &APIList{}
+		list.Data = []API{}
+		list.Next = ""
 	}
 	return apisMap
 }

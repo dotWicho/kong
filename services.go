@@ -335,6 +335,7 @@ func (ks *Services) AsMap() map[string]Service {
 	ks.kong.Session.AddQueryParam("size", RequestSize)
 
 	for {
+		ks.fail.Message = ""
 		if _, err := ks.kong.Session.BodyAsJSON(nil).Get(path, list, ks.fail); err != nil {
 			return nil
 		}
@@ -360,12 +361,13 @@ func (ks *Services) AsMap() map[string]Service {
 				serviceMap[service.ID] = serviceDetails
 			}
 		}
-		if len(list.Next) > 0 {
+		if len(list.Next) > 0 && path != list.Next {
 			path = list.Next
 		} else {
 			break
 		}
-		list = &ServiceList{}
+		list.Data = []Service{}
+		list.Next = ""
 	}
 	return serviceMap
 }

@@ -229,7 +229,8 @@ func (kr *Routes) AsMap() map[string]Route {
 		} else {
 			break
 		}
-		list = &RouteList{}
+		list.Data = []Route{}
+		list.Next = ""
 	}
 	return routeMap
 }

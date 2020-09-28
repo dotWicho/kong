@@ -140,12 +140,13 @@ func (p *Plugins) AsMap() map[string]Plugin {
 				pluginsMap[_plugin.ID] = pluginDetails
 			}
 		}
-		if len(list.Next) > 0 {
+		if len(list.Next) > 0 && path != list.Next {
 			path = list.Next
 		} else {
 			break
 		}
-		list = &PluginList{}
+		list.Data = []Plugin{}
+		list.Next = ""
 	}
 	Logger.Debug("[kong.Plugins.AsMap] pluginsMap = %+v", pluginsMap)
 	return pluginsMap
