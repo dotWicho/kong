@@ -1,6 +1,7 @@
 package kong
 
 import (
+	"fmt"
 	"github.com/dotWicho/logger"
 	"net/url"
 	"strconv"
@@ -10,7 +11,7 @@ import (
 )
 
 // Logger default
-var Logger = /* *logger.StandardLogger */ logger.NewLogger(true)
+var Logger = logger.NewLogger(false)
 
 // ClientOperations interface define all Kong Methods
 type ClientOperations interface {
@@ -110,13 +111,14 @@ func (k *Client) StatusCode() int {
 // CheckConnection check for a valid connection against a Kong server
 func (k *Client) CheckConnection() error {
 
-	version := strings.ReplaceAll(k.Version(), ".", "")
-	if !strings.HasPrefix(version, "0") {
-		version += "0"
+	if version := strings.ReplaceAll(k.Version(), ".", ""); version != "" {
+		if !strings.HasPrefix(version, "0") {
+			version += "0"
+		}
+		k.KongVersion, _ = strconv.Atoi(version)
+		return nil
 	}
-	k.KongVersion, _ = strconv.Atoi(version)
-
-	return nil
+	return fmt.Errorf("unable to get version from server")
 }
 
 // CheckStatus returns some metrics from KongAPI server
@@ -170,7 +172,9 @@ func (k *Client) NodeID() string {
 func (k *Client) Version() string {
 
 	if !k.getInfo {
-		_ = k.getInfoFromServer()
+		if err := k.getInfoFromServer(); err != nil {
+			return ""
+		}
 	}
 	return k.Info.Version
 }
