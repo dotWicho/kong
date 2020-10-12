@@ -3,11 +3,10 @@ package kong
 import (
 	"fmt"
 	"github.com/dotWicho/logger"
+	"github.com/dotWicho/requist"
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/dotWicho/requist"
 )
 
 // Logger default
