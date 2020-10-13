@@ -2,7 +2,7 @@ package kong
 
 // ListenerDefinition holds all data for a Listen Port definition
 type ListenerDefinition struct {
-	Backlog       bool   `json:"backlog=%d+,omitempty"`
+	Backlog       bool   `json:"backlog,omitempty"`
 	Bind          bool   `json:"bind,omitempty"`
 	Deferred      bool   `json:"deferred,omitempty"`
 	HTTP2         bool   `json:"http2,omitempty"`
@@ -21,9 +21,9 @@ type ClusterInfo struct {
 		AdminAccLogs           string               `json:"admin_acc_logs,omitempty"`
 		AdminAccessLog         string               `json:"admin_access_log,omitempty"`
 		AdminErrorLog          string               `json:"admin_error_log,omitempty"`
-		AdminListen            []string             `json:"admin_listen,omitempty"`
+		AdminListen            interface{}          `json:"admin_listen,omitempty"`
 		AdminListeners         []ListenerDefinition `json:"admin_listeners,omitempty"`
-		AdminListenSsl         []string             `json:"admin_listen_ssl,omitempty"`
+		AdminListenSsl         interface{}          `json:"admin_listen_ssl,omitempty"`
 		AdminSslCertDefault    string               `json:"admin_ssl_cert_default,omitempty"`
 		AdminSslCertKeyDefault string               `json:"admin_ssl_cert_key_default,omitempty"`
 		AdminSslEnabled        bool                 `json:"admin_ssl_enabled,omitempty"`
@@ -36,7 +36,7 @@ type ClusterInfo struct {
 		CassandraPort          int                  `json:"cassandra_port,omitempty"`
 		CassandraUsername      string               `json:"cassandra_username,omitempty"`
 		ClusterControlPlane    string               `json:"cluster_control_plane,omitempty"`
-		ClusterListen          []string             `json:"cluster_listen,omitempty"`
+		ClusterListen          interface{}          `json:"cluster_listen,omitempty"`
 		ClusterListeners       []ListenerDefinition `json:"cluster_listeners,omitempty"`
 		Database               string               `json:"database,omitempty"`
 		KongEnv                string               `json:"kong_env,omitempty"`
@@ -62,12 +62,12 @@ type ClusterInfo struct {
 		PgSsl                  bool                 `json:"pg_ssl,omitempty"`
 		PgSslVerify            bool                 `json:"pg_ssl_verify,omitempty"`
 		PgUser                 string               `json:"pg_user,omitempty"`
-		Plugins                []string             `json:"plugins,omitempty"`
+		Plugins                interface{}          `json:"plugins,omitempty"`
 		Prefix                 string               `json:"prefix,omitempty"`
 		ProxyIP                string               `json:"proxy_ip,omitempty"`
-		ProxyListen            []string             `json:"proxy_listen,omitempty"`
+		ProxyListen            interface{}          `json:"proxy_listen,omitempty"`
 		ProxyListeners         []ListenerDefinition `json:"proxy_listeners,omitempty"`
-		ProxyListenSsl         []string             `json:"proxy_listen_ssl,omitempty"`
+		ProxyListenSsl         interface{}          `json:"proxy_listen_ssl,omitempty"`
 		ProxyPort              int                  `json:"proxy_port,omitempty"`
 		ProxySslIP             string               `json:"proxy_ssl_ip,omitempty"`
 		ProxySslPort           int                  `json:"proxy_ssl_port,omitempty"`

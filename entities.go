@@ -7,7 +7,7 @@ type FailureMessage struct {
 
 // Plugin holds responses for a request of create or update a plugin
 type Plugin struct {
-	ID        string      `json:"id"`
+	ID        string      `json:"id,omitempty"`
 	Name      string      `json:"name,omitempty"`
 	Enabled   bool        `json:"enabled,omitempty"`
 	Created   int64       `json:"created_at,omitempty"`
@@ -34,16 +34,16 @@ type EnabledPlugins struct {
 
 // ACLConfig holds config for acl plugin
 type ACLConfig struct {
-	HideGroupsHeader bool     `json:"hide_groups_header"`
-	Blacklist        []string `json:"blacklist"`
-	Whitelist        []string `json:"whitelist"`
+	HideGroupsHeader bool     `json:"hide_groups_header,omitempty"`
+	Blacklist        []string `json:"blacklist,omitempty"`
+	Whitelist        []string `json:"whitelist,omitempty"`
 }
 
 // ACLBody holds config for acl plugin
 type ACLBody struct {
-	HideGroupsHeader bool     `json:"hide_groups_header"`
-	Blacklist        []string `json:"blacklist"`
-	Whitelist        []string `json:"whitelist"`
+	HideGroupsHeader bool     `json:"hide_groups_header,omitempty"`
+	Blacklist        []string `json:"blacklist,omitempty"`
+	Whitelist        []string `json:"whitelist,omitempty"`
 }
 
 // Authentication just and alias for string to make an enum datatype
