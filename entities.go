@@ -46,6 +46,21 @@ type ACLBody struct {
 	Whitelist        []string `json:"whitelist,omitempty"`
 }
 
+// ACLConsumer holds config for acls of a consumer
+type ACLConsumer struct {
+	Data []ACL  `json:"data,omitempty"`
+	Next string `json:"next,omitempty"`
+}
+
+// ACL holds groups information of a consumer
+type ACL struct {
+	ID        string      `json:"id,omitempty"`
+	Consumer  interface{} `json:"consumer,omitempty"`
+	CreatedAt int64       `json:"created_at,omitempty"`
+	Group     string      `json:"group,omitempty"`
+	Tags      []string    `json:"tags,omitempty"`
+}
+
 // Authentication just and alias for string to make an enum datatype
 type Authentication string
 
