@@ -243,7 +243,7 @@ func (kc *Consumers) ByKey(key string) *Consumer {
 	if len(key) > 0 {
 		if kc.kong.KongVersion >= 112 {
 
-			path := fmt.Sprintf("%s/%s/%s", KeyAuthsURI, key, ConsumerURI)
+			path := fmt.Sprintf("%s/%s%s", KeyAuthsURI, key, ConsumerURI)
 
 			if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
 				return nil
@@ -257,59 +257,74 @@ func (kc *Consumers) ByKey(key string) *Consumer {
 // Plugins returns plugins for a given service
 func (kc *Consumers) Plugins() map[string]Plugin {
 
-	return NewPlugins(kc.consumer, kc.kong).AsMap()
+	if len(kc.consumer.ID) > 0 {
+		return NewPlugins(kc.consumer, kc.kong).AsMap()
+	}
+	return nil
 }
 
 // GetACL returns context of a whitelist
 func (kc *Consumers) GetACL() []string {
 
+	acls := make([]string, 0)
+
 	if len(kc.consumer.ID) > 0 {
-		//
-		if _plugins := kc.Plugins(); _plugins != nil {
-			if _plugins["acl"].ID != "" {
-				return _plugins["acl"].Config.(ACLConfig).Whitelist
+
+		kc.kong.Session.AddQueryParam("size", RequestSize)
+		path := fmt.Sprintf("%s/%s/acls", ConsumersURI, kc.consumer.ID)
+
+		list := &ACLConsumer{}
+		for {
+			kc.fail.Message = ""
+			if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, list, kc.fail); err != nil {
+				return nil
 			}
+
+			if len(list.Data) > 0 && len(kc.fail.Message) == 0 {
+				for _, acl := range list.Data {
+					acls = append(acls, acl.Group)
+				}
+			}
+			if len(list.Next) > 0 && path != list.Next {
+				path = list.Next
+			} else {
+				break
+			}
+			list.Data = []ACL{}
+			list.Next = ""
 		}
 	}
-	return nil
+	return acls
 }
 
 // SetACL assign a group to a consumer
 func (kc *Consumers) SetACL(groups []string) error {
 
-	config := ACLConfig{
-		HideGroupsHeader: false,
-		Blacklist:        nil,
-		Whitelist:        groups,
+	if len(kc.consumer.ID) > 0 {
+		path := fmt.Sprintf("%s/%s/acls", ConsumersURI, kc.consumer.ID)
+
+		for _, group := range groups {
+			acl := &ACL{Group: group}
+			if _, err := kc.kong.Session.BodyAsJSON(acl).Post(path, acl, kc.fail); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
-	if NewPlugins(kc, kc.kong).Create(Plugin{Name: "acl", Enabled: true, Config: config}) == nil {
-		return fmt.Errorf("acl failed to assing")
-	}
-	return nil
+	return errors.New("consumer cannot be empty")
 }
 
 // RevokeACL removes a group from a consumer
 func (kc *Consumers) RevokeACL(group string) error {
 
 	if len(kc.consumer.ID) > 0 {
-		erase := -1
+		path := fmt.Sprintf("%s/%s/acls/%s", ConsumersURI, kc.consumer.ID, group)
 
-		groups := kc.GetACL()
-		for index, value := range groups {
-			if value == group {
-				erase = index
-			}
+		acl := &ACL{}
+		if _, err := kc.kong.Session.BodyAsJSON(nil).Delete(path, acl, kc.fail); err != nil {
+			return err
 		}
-		if erase > -1 {
-			groups[erase] = groups[len(groups)-1]
-			groups[len(groups)-1] = ""
-			groups = groups[:len(groups)-1]
-
-			_ = NewPlugins(kc, kc.kong).Delete("acl")
-
-			return kc.SetACL(groups)
-		}
-		return fmt.Errorf("%s is not on the whitelist", group)
+		return nil
 	}
 	return errors.New("consumer cannot be empty")
 }
