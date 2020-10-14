@@ -174,6 +174,9 @@ func (p *Plugins) path() string {
 
 	if p.parent != nil {
 		switch p.parent.(type) {
+		case *Consumer:
+			return fmt.Sprintf("%s/%s/plugins", ConsumersURI, p.parent.(*Consumer).ID)
+
 		case *API:
 			return fmt.Sprintf("%s/%s/plugins", ApisURI, p.parent.(*API).ID)
 
