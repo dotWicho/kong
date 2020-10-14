@@ -579,13 +579,19 @@ func MockServer() *httptest.Server {
 				_, _ = w.Write([]byte(consumerDemo))
 			}
 
-		case "/consumers/17cd2921-ce94-4b60-950b-10c25169095b/key-auth":
+		case "/consumers/17cd2921-ce94-4b60-950b-10c25169095b/key-auth",
+			"/consumers/17cd2921-ce94-4b60-950b-10c25169095b/key-auth/1438504c-5e2d-4d9a-9fd8-a781f5abf9a5",
+			"/consumers/17cd2921-ce94-4b60-950b-10c25169095b/key-auth/ada1b81be39048d5a610c12f03bcac8a":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(consumerDemoKeyAuth))
 
 		case "/consumers/17cd2921-ce94-4b60-950b-10c25169095b/plugins":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(apiPluginsList))
+
+		case "/key-auths/1438504c-5e2d-4d9a-9fd8-a781f5abf9a5/consumer":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(consumerDemo))
 
 		case "/consumers/17cd2921-ce94-4b60-950b-10c25169095b/plugins/45e6778d-fcbc-4932-af1d-7741397c1f1a":
 			w.WriteHeader(http.StatusOK)

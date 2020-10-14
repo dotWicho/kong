@@ -306,3 +306,176 @@ func TestConsumers_GetKeyAuth(t *testing.T) {
 		assert.Equal(t, "ada1b81be39048d5a610c12f03bcac8a", _keyauths["1438504c-5e2d-4d9a-9fd8-a781f5abf9a5"].Key)
 	})
 }
+
+func TestConsumers_SetKeyAuth(t *testing.T) {
+
+	// We create a Mock Server
+	server := tests.MockServer()
+	defer server.Close()
+
+	// Default Consumer ID
+	consumerID := "17cd2921-ce94-4b60-950b-10c25169095b"
+
+	t.Run("get error if SetKeyAuth called with empty Consumer", func(t *testing.T) {
+
+		// Try to create Consumers
+		_consumers := NewConsumers(New(server.URL))
+
+		// fire up SetKeyAuth
+		err := _consumers.SetKeyAuth("fake_key")
+
+		// err must be
+		assert.NotNil(t, err)
+		assert.Equal(t, "consumer id/key cannot be null nor empty", err.Error())
+	})
+
+	t.Run("get error if SetKeyAuth called with empty key", func(t *testing.T) {
+
+		// Try to create Consumers
+		_consumers := NewConsumers(New(server.URL))
+
+		// fire up SetKeyAuth
+		err := _consumers.Get(consumerID).SetKeyAuth("")
+
+		// err must be
+		assert.NotNil(t, err)
+		assert.Equal(t, "consumer id/key cannot be null nor empty", err.Error())
+	})
+
+	t.Run("get non error if SetKeyAuth called with valid key", func(t *testing.T) {
+
+		// Try to create Consumers
+		_consumers := NewConsumers(New(server.URL))
+
+		// fire up SetKeyAuth
+		err := _consumers.Get(consumerID).SetKeyAuth("1438504c-5e2d-4d9a-9fd8-a781f5abf9a5")
+
+		// err must be nil
+		assert.Nil(t, err)
+	})
+}
+
+func TestConsumers_CreateKeyAuth(t *testing.T) {
+	// We create a Mock Server
+	server := tests.MockServer()
+	defer server.Close()
+
+	// Default Consumer ID
+	consumerID := "17cd2921-ce94-4b60-950b-10c25169095b"
+
+	t.Run("get error if CreateKeyAuth called with empty Consumer", func(t *testing.T) {
+
+		// Try to create Consumers
+		_consumers := NewConsumers(New(server.URL))
+
+		// fire up CreateKeyAuth
+		err := _consumers.CreateKeyAuth()
+
+		// err must be
+		assert.NotNil(t, err)
+		assert.Equal(t, "consumer id cannot be null nor empty", err.Error())
+	})
+
+	t.Run("get non error if CreateKeyAuth called with valid key", func(t *testing.T) {
+
+		// Try to create Consumers
+		_consumers := NewConsumers(New(server.URL))
+
+		// fire up CreateKeyAuth
+		err := _consumers.Get(consumerID).CreateKeyAuth()
+
+		// err must be nil
+		assert.Nil(t, err)
+	})
+}
+
+func TestConsumers_DeleteKeyAuth(t *testing.T) {
+
+	// We create a Mock Server
+	server := tests.MockServer()
+	defer server.Close()
+
+	// Default Consumer ID
+	consumerID := "17cd2921-ce94-4b60-950b-10c25169095b"
+
+	t.Run("get error if DeleteKeyAuth called with empty Consumer", func(t *testing.T) {
+
+		// Try to create Consumers
+		_consumers := NewConsumers(New(server.URL))
+
+		// fire up SetKeyAuth
+		err := _consumers.DeleteKeyAuth("fake_key")
+
+		// err must be
+		assert.NotNil(t, err)
+		assert.Equal(t, "consumer id/key cannot be null nor empty", err.Error())
+	})
+
+	t.Run("get error if DeleteKeyAuth called with empty key", func(t *testing.T) {
+
+		// Try to create Consumers
+		_consumers := NewConsumers(New(server.URL))
+
+		// fire up SetKeyAuth
+		err := _consumers.Get(consumerID).DeleteKeyAuth("")
+
+		// err must be
+		assert.NotNil(t, err)
+		assert.Equal(t, "consumer id/key cannot be null nor empty", err.Error())
+	})
+
+	t.Run("get non error if DeleteKeyAuth called with valid key", func(t *testing.T) {
+
+		// Try to create Consumers
+		_consumers := NewConsumers(New(server.URL))
+
+		// fire up SetKeyAuth
+		err := _consumers.Get(consumerID).DeleteKeyAuth("1438504c-5e2d-4d9a-9fd8-a781f5abf9a5")
+
+		// err must be nil
+		assert.Nil(t, err)
+	})
+}
+
+func TestConsumers_ByKey(t *testing.T) {
+
+	// We create a Mock Server
+	server := tests.MockServer()
+	defer server.Close()
+
+	// Default Consumer ID
+	consumerID := "17cd2921-ce94-4b60-950b-10c25169095b"
+
+	t.Run("get error if ByKey called with empty Consumer", func(t *testing.T) {
+
+		// Try to create Consumers
+		_consumers := NewConsumers(New(server.URL))
+
+		// fire up CreateKeyAuth
+		consumer := _consumers.ByKey("fake_key")
+
+		// err must be
+		assert.Nil(t, consumer)
+	})
+
+	t.Run("get non error if ByKey called with valid key", func(t *testing.T) {
+
+		// Try to create Kong Client
+		_kong := New(server.URL)
+		// fire up CheckConnection to populate Version values
+		err := _kong.CheckConnection()
+
+		// err must be nil
+		assert.Nil(t, err)
+
+		// Try to create Consumers
+		_consumers := NewConsumers(_kong)
+
+		// fire up CreateKeyAuth
+		consumer := _consumers.ByKey("1438504c-5e2d-4d9a-9fd8-a781f5abf9a5")
+
+		// consumer must be nil
+		assert.NotNil(t, consumer)
+		assert.Equal(t, consumerID, consumer.ID)
+	})
+}
