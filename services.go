@@ -342,7 +342,7 @@ func (ks *Services) AsMap() map[string]Service {
 
 		if len(list.Data) > 0 && len(ks.fail.Message) == 0 {
 			for _, service := range list.Data {
-				serviceDetails := Service{
+				serviceMap[service.ID] = Service{
 					ID:                service.ID,
 					Name:              service.Name,
 					CreatedAt:         service.CreatedAt,
@@ -358,7 +358,6 @@ func (ks *Services) AsMap() map[string]Service {
 					Tags:              service.Tags,
 					ClientCertificate: service.ClientCertificate,
 				}
-				serviceMap[service.ID] = serviceDetails
 			}
 		}
 		if len(list.Next) > 0 && path != list.Next {

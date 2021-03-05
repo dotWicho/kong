@@ -348,14 +348,13 @@ func (kc *Consumers) AsMap() map[string]Consumer {
 
 		if len(list.Data) > 0 && len(kc.fail.Message) == 0 {
 			for _, _consumers := range list.Data {
-				consumerDetail := Consumer{
+				consumersMap[_consumers.Username] = Consumer{
 					ID:        _consumers.ID,
 					Username:  _consumers.Username,
 					CustomID:  _consumers.CustomID,
 					CreatedAt: _consumers.CreatedAt,
 					Tags:      _consumers.Tags,
 				}
-				consumersMap[_consumers.ID] = consumerDetail
 			}
 		}
 		if len(list.Next) > 0 && path != list.Next {
