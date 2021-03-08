@@ -96,6 +96,7 @@ func (kc *Consumers) Exist(id string) bool {
 	}
 	path := fmt.Sprintf("%s/%s", ConsumersURI, id)
 
+	kc.fail.Message = ""
 	if _, err := kc.kong.Session.BodyAsJSON(nil).Get(path, kc.consumer, kc.fail); err != nil {
 		return false
 	}
