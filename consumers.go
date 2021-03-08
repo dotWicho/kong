@@ -179,13 +179,12 @@ func (kc *Consumers) GetKeyAuth() map[string]KeyAuthData {
 
 		if len(keyAuths.Data) > 0 && len(kc.fail.Message) == 0 {
 			for _, basicAuth := range keyAuths.Data {
-				keyDetails := KeyAuthData{
+				keysMap[basicAuth.ID] = KeyAuthData{
 					ID:         basicAuth.ID,
 					Key:        basicAuth.Key,
 					ConsumerID: basicAuth.ConsumerID,
 					CreatedAt:  basicAuth.CreatedAt,
 				}
-				keysMap[basicAuth.ID] = keyDetails
 			}
 		}
 	}
